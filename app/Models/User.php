@@ -29,4 +29,21 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function isAdmin():bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isBusinessOwner() : bool
+    {
+        return $this->role === 'business_owner';
+    }
+    public function isCustomer():bool
+    {
+        return $this->role === 'customer';
+    }
+
 }
+
+
