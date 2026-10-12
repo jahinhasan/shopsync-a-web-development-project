@@ -15,6 +15,23 @@
             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
+       
+<div class="mt-4">
+    <x-input-label for="role" value="Register As" />
+
+    <select id="role" name="role" required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+        <option defalt value="customer" @selected(old('role') === 'customer')>
+            Customer
+        </option>
+        <option value="business_owner" @selected(old('role') === 'business_owner')>
+            Business Owner
+        </option>
+    </select>
+
+    <x-input-error :messages="$errors->get('role')" class="mt-2" />
+</div>
+
 
         <!-- Password -->
         <div class="mt-4">

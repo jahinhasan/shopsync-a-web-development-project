@@ -9,9 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
-                    printf '%s\n' '<h1>Customer Dashboard</h1>' > resources/views/dashboards/customer.blade.php
-                    printf '%s\n' '<h1>Business Owner Dashboard</h1>' > resources/views/dashboards/owner.blade.php
-                    printf '%s\n' '<h1>Admin Dashboard</h1>' > resources/views/dashboards/admin.blade.php
+                    {{ __('Welcome to your dashboard') }}
                 </div>
             </div>
         </div>
