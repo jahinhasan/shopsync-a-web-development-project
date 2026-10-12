@@ -19,13 +19,13 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'catagory_id' => ['required', 'integer','exists:categories,id'],
+            'category_id' => ['required', 'integer','exists:categories,id'],
             'name'=>['required','string','max:100'],
             'slug'=>['required','alpha_dash','max:255','unique:products,slug'],
             'description'=>['nullable','string','max:10000'],
             'price'=>['required','numeric','min:0.01','max:99999999999.99'],
             'stock'=>['required','integer','min:0'],
-            'image'=>['nullable','image','max:2048'],
+            'image'=>['nullable','file', 'max:2048'],
         ];
     }
 }

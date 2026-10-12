@@ -4,15 +4,24 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Owner\ProductController;
-
+;
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', fn () => match (auth()->user()->role){
+    Route::get('/dashboard', fn () => match (request()->user()->role){
         'admin' => redirect()->route('admin.dashboard'),
         'business_owner' => redirect()->route('owner.dashboard'),
         default => redirect()->route('customer.dashboard'),
     })->middleware('verified')->name('dashboard');
+Route::put('/products/{product}', [
+    \App\Http\Controllers\Owner\ProductController::class,
+    'update'
+])->name('products.update');
+
+
+
+
+Route::delete('/products/{product}', [ \App\Http\Controllers\Owner\ProductController::class,'destroy'])->name('products.destroy');
 
   Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');
     Route::view('/owner/dashboard', 'dashboards.owner')->middleware('role:business_owner')->name('owner.dashboard');
@@ -27,4 +36,4 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 });
 
 
-require __DIR__.'/auth.php';
+$app = require __DIR__.'/auth.php';
