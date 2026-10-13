@@ -10,24 +10,55 @@
                 <p class="mt-1 text-sm text-gray-500">Manage your store, inventory and orders.</p>
             </div>
 
-<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-    @foreach ([
-        ['Products', $totalProducts],
-        ['Available Stock', $totalStock],
-        ['Orders', $totalOrders],
-        ['Sales', '৳' . number_format((float) $totalSales, 2)],
-    ] as [$title, $value])
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p class="text-sm text-gray-500">{{ $title }}</p>
-            <h3 class="mt-2 text-2xl font-bold text-gray-900">{{ $value }}</h3>
-        </div>
-    @endforeach
-</div>
-
-            <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-900">Store Management</h3>
-                <p class="mt-2 text-sm text-gray-600">Product management, stock updates, order processing and sales reports will be connected to the database in upcoming modules.</p>
+            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ([['Products', $totalProducts], ['Available Stock', $totalStock], ['Orders', $totalOrders], ['Sales', '৳' . number_format((float) $totalSales, 2)]] as [$title, $value])
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                        <p class="text-sm text-gray-500">{{ $title }}</p>
+                        <h3 class="mt-2 text-2xl font-bold text-gray-900">{{ $value }}</h3>
+                    </div>
+                @endforeach
             </div>
+<div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <h3 class="text-lg font-semibold text-gray-900">
+        Store Management
+    </h3>
+
+    <p class="mt-2 text-sm text-gray-600">
+        Manage your products, inventory and customer orders.
+    </p>
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+        <a href="{{ route('owner.products.index') }}"
+           class="rounded-lg border border-gray-200 p-5 transition hover:border-indigo-500 hover:bg-indigo-50">
+            <h4 class="font-semibold text-gray-900">
+                Manage Products
+            </h4>
+
+            <p class="mt-2 text-sm text-gray-500">
+                Add, edit and manage your products.
+            </p>
+
+            <span class="mt-4 inline-block text-sm font-medium text-indigo-600">
+                View Products →
+            </span>
+        </a>
+
+        <a href="{{ route('orders.manage') }}"
+           class="rounded-lg border border-gray-200 p-5 transition hover:border-indigo-500 hover:bg-indigo-50">
+            <h4 class="font-semibold text-gray-900">
+                Manage Orders
+            </h4>
+
+            <p class="mt-2 text-sm text-gray-500">
+                View customer orders and update their status.
+            </p>
+
+            <span class="mt-4 inline-block text-sm font-medium text-indigo-600">
+                View Orders →
+            </span>
+        </a>
+    </div>
+</div>
         </div>
     </div>
 </x-app-layout>
