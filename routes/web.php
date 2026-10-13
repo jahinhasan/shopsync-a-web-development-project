@@ -9,6 +9,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\OderController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Owner\DashboardController;
+use App\Http\Controllers\Owner\InventoryController;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -49,17 +50,29 @@ Route::middleware('auth')->group(function () {
     Route::patch('/manage/orders/{order}/status', [OderController::class, 'updateStatus'])->name('orders.update-status');
     Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');
     Route::get('/owner/dashboard', [DashboardController::class, 'index'])
-    ->middleware('role:business_owner')
-    ->name('owner.dashboard');
+        ->middleware('role:business_owner')
+        ->name('owner.dashboard');
     Route::view('/admin/dashboard', 'dashboards.admin')->middleware('role:admin')->name('admin.dashboard');
-
+    Route::patch('/products/{product}/stock', [
+        InventoryController::class,
+        'updateStock',
+    ])->name('products.update-stock');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::middleware(['auth', 'role:business_owner'])->prefix('owner')->name('owner.')->group(fn() => Route::resource('products', ProductController::class)->except('show'));
+Route::middleware(['auth', 'role:business_owner'])
+    ->prefix('owner')
+    ->name('owner.')
+    ->group(function () {
+        Route::resource('products', ProductController::class)
+            ->except('show');
 
-
+        Route::patch('/products/{product}/stock', [
+            InventoryController::class,
+            'updateStock',
+        ])->name('products.update-stock');
+    });
 
     Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(fn() => Route::resource('categories', CategoryController::class)->except('show'));
     Route::middleware('auth')->get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
