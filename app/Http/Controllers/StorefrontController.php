@@ -14,4 +14,12 @@ class StorefrontController extends Controller
    
        return view('shop.index', compact('products'));
     }
+
+
+    public function show(Product $product): View
+    {
+        abort_unless($product->is_active && $product->stock > 0, 404);
+        $product->load('category');
+        return view('shop.show', compact('product'));
+    }
 }

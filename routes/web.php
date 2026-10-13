@@ -19,7 +19,7 @@ Route::middleware('auth')->group(function () {
         'update',
     ])->name('products.update');
     Route::get('/shop', [StorefrontController::class, 'index'])->name('shop.index');
-
+    Route::get('/shop/{product}', [StorefrontController::class, 'show'])->name('shop.show');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
 
     Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');
