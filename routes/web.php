@@ -6,6 +6,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\OderController;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -38,6 +39,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout.index');
     Route::post('/checkout', [CartController::class, 'placeOrder'])->name('checkout.place');
+
+    Route::get('/my-orders',[OderController::class,'index'])->name('orders.index');
+    Route::get('/my-orders/{order}',[OderController::class,'show'])->name('orders.show');
 
 
     Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');
