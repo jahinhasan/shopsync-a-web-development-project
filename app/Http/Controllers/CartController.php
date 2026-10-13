@@ -105,6 +105,12 @@ class CartController extends Controller
             return redirect()->route('cart.index')->with('error', 'your cart is empty');
         }
 
+        foreach($cart as $quantity){
+            if(! is_numeric($quantity) || (int) $quantity != $quantity || $quantity < 1){
+                return redirect()->route('cart.index')->with('error', 'Invalid quantity in cart');
+            }
+        }
+
         $order = DB::transaction(function () use ($cart, $validated) {
             $products = Product::whereIn('id', array_keys($cart))->lockForUpdate()->get()->keyBy('id');
 
@@ -112,8 +118,9 @@ class CartController extends Controller
             $total = 0;
             foreach ($cart as $id => $quantity) {
                 $product = $products->get($id);
+                $QUANTITY = (int) $quantity;
                 if (
-                    ! $product || ! $product->is_active || $quantity < 1 || $quantity > $product->stock
+                    ! $product || ! $product->is_active ||  $quantity > $product->stock
                 ) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'cart' => 'A product is unavailable or its stock has changed. please review your cart.',
