@@ -13,8 +13,9 @@ use App\Http\Controllers\Owner\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StorefrontController;
 
-
-Route::view('/', 'welcome')->name('home');
+Route::get('/', function () {
+    return redirect()->route('login');
+})->name('home');
 
 Route::middleware('auth')->group(function () {
 

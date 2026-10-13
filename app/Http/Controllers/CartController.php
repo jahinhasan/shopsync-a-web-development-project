@@ -81,15 +81,24 @@ class CartController extends Controller
             ->with('success', 'Product removed from cart.');
     }
 
-    public function checkout(): View
-    {
-        $cart = session('cart', []);
-        abort_if(empty($cart), redirect()->route('cart.index')->getStatusCode());
 
-        $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
+public function checkout(): View|RedirectResponse
+{
+    $cart = session('cart', []);
 
-        return view('cart.checkout', compact('cart', 'products'));
+    if (empty($cart)) {
+        return redirect()
+            ->route('cart.index')
+            ->with('error', 'Your cart is empty. Please add products before checkout.');
     }
+
+    $products = Product::whereIn('id', array_keys($cart))
+        ->get()
+        ->keyBy('id');
+
+    return view('cart.checkout', compact('cart', 'products'));
+}
+
 
     public function placeOrder(Request $request, Product $products): RedirectResponse
     {
