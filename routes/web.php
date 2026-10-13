@@ -5,6 +5,7 @@ use App\Http\Controllers\Owner\ProductController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StorefrontController;
+use App\Http\Controllers\CartController;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -21,6 +22,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/shop', [StorefrontController::class, 'index'])->name('shop.index');
     Route::get('/shop/{product}', [StorefrontController::class, 'show'])->name('shop.show');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+Route::get('/cart', [CartController::class, 'index'])
+    ->name('cart.index');
+
+Route::post('/cart/{product}', [CartController::class, 'add'])
+    ->name('cart.add');
+
+Route::delete('/cart/{product}', [CartController::class, 'remove'])
+    ->name('cart.remove');
+
+
+
+Route::patch('/cart/{product}', [CartController::class, 'update'])
+    ->name('cart.update');
 
     Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');
     Route::view('/owner/dashboard', 'dashboards.owner')->middleware('role:business_owner')->name('owner.dashboard');

@@ -22,7 +22,7 @@
                 </h1>
 
 
-                  <p class="mt-2 text-gray-500">
+                <p class="mt-2 text-gray-500">
                     {{ $product->category?->name ?? 'Uncategorized' }}
                 </p>
 
@@ -37,6 +37,14 @@
                 <p class="mt-4 text-green-700">
                     In stock: {{ $product->stock }}
                 </p>
+
+                <form method="POST" action="{{ route('cart.add', $product) }}" class="mt-6">
+                    @csrf
+
+                    <button type="submit" class="rounded-md bg-indigo-600 px-5 py-2 text-white hover:bg-indigo-700">
+                        Add to Cart
+                    </button>
+                </form>
             </div>
 
 
