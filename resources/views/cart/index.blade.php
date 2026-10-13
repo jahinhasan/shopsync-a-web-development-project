@@ -64,6 +64,11 @@
                 Total: ৳{{ number_format($total, 2) }}
             </div>
         @endif
+        @if (count($cart)>0)
+        <div class="text-right">
+            <a href="{{ route('checkout.index') }}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"> Proceed to checkOut</a>
+        </div>
+        @endif
 
         <a href="{{ route('shop.index') }}" class="inline-block text-indigo-600 hover:underline">
             Continue Shopping

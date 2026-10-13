@@ -36,8 +36,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/cart/{product}', [CartController::class, 'update'])
         ->name('cart.update');
 
-Route::get('/checkout', [CartController::class,'checkout'])->name('checkout.index');
-
+    Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout.index');
+    Route::post('/checkout', [CartController::class, 'placeOrder'])->name('checkout.place');
 
 
     Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');

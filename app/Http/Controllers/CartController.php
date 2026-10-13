@@ -6,6 +6,11 @@ use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Models\Order;
+use Illuminate\Support\Facades\DB;
+use App\Models\OrderIdem;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class CartController extends Controller
 {
@@ -84,5 +89,69 @@ class CartController extends Controller
         $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
 
         return view('cart.checkout', compact('cart', 'products'));
+    }
+
+    public function placeOrder(Request $request, Product $products): RedirectResponse
+    {
+        $validated = $request->validate([
+            'customer_name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:30'],
+            'shipping_address' => ['required', 'string', 'max:2000']
+        ]);
+
+        $cart = $request->session()->get('cart', []);
+
+        if (empty($cart)) {
+            return redirect()->route('cart.index')->with('error', 'your cart is empty');
+        }
+
+        $order = DB::transaction(function () use ($cart, $validated) {
+            $products = Product::whereIn('id', array_keys($cart))->lockForUpdate()->get()->keyBy('id');
+
+
+            $total = 0;
+            foreach ($cart as $id => $quantity) {
+                $product = $products->get($id);
+                if (
+                    ! $product || ! $product->is_active || $quantity < 1 || $quantity > $product->stock
+                ) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'cart' => 'A product is unavailable or its stock has changed. please review your cart.',
+                    ]);
+                }
+
+                $total += (float) $product->price * $quantity;
+            }
+
+            $order = Order::Create([
+                'user_id' => Auth::id(),
+                'customer_name' => $validated['customer_name'],
+                'phone' => $validated['phone'],
+                'shipping_address' => $validated['shipping_address'],
+                'total' => $total,
+                'status' => 'pending',
+                'order_number' => 'ORD-' . Str::upper(str::random(12)),
+                'payment_status' => 'unpaid',
+                'payment_method' => 'cod',
+
+            ]);
+            foreach ($cart as $id => $quantity) {
+                $product = $products->get($id);
+                OrderIdem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'unit_price' => $product->price,
+
+                    'quantity' => $quantity,
+                    'subtotal' => (float)$product->price * $quantity,
+                ]);
+                $product->decrement('stock', $quantity);
+            }
+            return $order;
+        });
+
+        $request->session()->forget('cart');
+        return redirect()->route('cart.index')->with('success', 'Order placed successfully. Your order number is: ' . $order->order_number);
     }
 }
