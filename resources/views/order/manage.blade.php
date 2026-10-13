@@ -46,7 +46,7 @@
 
                     <div>
                         <p class="text-lg font-bold text-gray-900">
-                            ৳{{ number_format((float) $order->total, 2) }}
+                            ৳{{ number_format((float) $order->items->sum('subtotal'), 2) }}
                         </p>
 
                         <p class="mt-1 text-sm text-gray-600">

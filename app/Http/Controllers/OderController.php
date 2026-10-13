@@ -21,55 +21,88 @@ class OderController extends Controller
 
     public function show(Order $order,): View
     {
-        abort_unless($order->user_id === Auth::id(), 403);
+        abort_unless((int) $order->user_id ===(int) Auth::id(), 403);
         $order->load('items');
         return view('order.show', compact('order'));
     }
-   public function manage(): View
-{
-    $userId = Auth::id();
 
-    $orders = Order::whereHas('items.product', function ($query) use ($userId) {
-        $query->where('user_id', $userId);
-    })
-        ->with(['items.product', 'user'])
-        ->latest()
-        ->paginate(15);
+    public function manage(): View
+    {
+        $userId = Auth::id();
 
-    return view('order.manage', compact('orders'));
-}
-
-public function updateStatus(
-    Request $request,
-    Order $order
-): RedirectResponse {
-    $validated = $request->validate([
-        'status' => [
-            'required',
-            Rule::in([
-                'pending',
-                'processing',
-                'shipped',
-                'delivered',
-                'cancelled',
-            ]),
-        ],
-    ]);
-
-    $ownsOrderProduct = $order->items()
-        ->whereHas('product', function ($query) {
-            $query->where('user_id', Auth::id());
+        $orders = Order::whereHas('items.product', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
         })
-        ->exists();
+            ->with([
+                'items' => function ($query) use ($userId) {
+                    $query->whereHas('product', function ($productQuery) use ($userId) {
+                        $productQuery->where('user_id', $userId);
+                    });
+                },
+                'items.product',
+                'user',
+            ])
+            ->latest()
+            ->paginate(15);
 
-    abort_unless($ownsOrderProduct, 403);
+        return view('order.manage', compact('orders'));
+    }
 
-    $order->update([
-        'status' => $validated['status'],
-    ]);
+    public function updateStatus(
+        Request $request,
+        Order $order
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'status' => [
+                'required',
+                Rule::in([
+                    'pending',
+                    'processing',
+                    'shipped',
+                    'delivered',
+                    'cancelled',
+                ]),
+            ],
+        ]);
 
-    return redirect()
-        ->route('owner.order.manage')
-        ->with('success', 'Order status updated successfully.');
-}
+        $ownsOrderProduct = $order->items()
+            ->whereHas('product', function ($query) {
+                $query->where('user_id', Auth::id());
+            })
+            ->exists();
+
+        abort_unless($ownsOrderProduct, 403);
+
+        $allowedTransitions = [
+            'pending' => ['processing', 'cancelled'],
+            'processing' => ['shipped', 'cancelled'],
+            'shipped' => ['delivered'],
+            'delivered' => [],
+            'cancelled' => [],
+        ];
+
+        $currentStatus = $order->status;
+        $newStatus = $validated['status'];
+
+        if (! in_array(
+            $newStatus,
+            $allowedTransitions[$currentStatus] ?? [],
+            true
+        )) {
+            return back()
+                ->withErrors([
+                    'status' => "Cannot change order status from {$currentStatus} to {$newStatus}.",
+                ])
+                ->withInput();
+        }
+
+
+        $order->update([
+            'status' => $validated['status'],
+        ]);
+
+        return redirect()
+            ->route('owner.order.manage')
+            ->with('success', 'Order status updated successfully.');
+    }
 }

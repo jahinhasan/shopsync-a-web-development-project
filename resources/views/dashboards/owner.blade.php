@@ -43,7 +43,7 @@
             </span>
         </a>
 
-        <a href="{{ route('orders.manage') }}"
+        <a href="{{ route('owner.order.manage') }}"
            class="rounded-lg border border-gray-200 p-5 transition hover:border-indigo-500 hover:bg-indigo-50">
             <h4 class="font-semibold text-gray-900">
                 Manage Orders
