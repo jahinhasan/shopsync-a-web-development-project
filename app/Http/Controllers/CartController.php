@@ -2,23 +2,23 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-
 class CartController extends Controller
 {
-    public function index(Request $request): View{
+    public function index(Request $request): View
+    {
         $cart = $request->session()->get('cart', []);
 
-        $products = Product::whereIn('id',array_keys($cart))->get()->keyBy('id');
+        $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
 
-        return view('cart.index', compact('cart','products'));
+        return view('cart.index', compact('cart', 'products'));
     }
-        public function add(Request $request, Product $product): RedirectResponse
+
+    public function add(Request $request, Product $product): RedirectResponse
     {
         abort_unless($product->is_active && $product->stock > 0, 404);
 
@@ -38,32 +38,33 @@ class CartController extends Controller
             ->with('success', 'Product added to cart.');
     }
 
-public function update(Request $request, Product $product): RedirectResponse
-{
-    $validated = $request->validate([
-        'quantity' => ['required', 'integer', 'min:1'],
-    ]);
+    public function update(Request $request, Product $product): RedirectResponse
+    {
+        $validated = $request->validate([
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
 
-    abort_unless($product->is_active, 404);
+        abort_unless($product->is_active, 404);
 
-    $quantity = (int) $validated['quantity'];
+        $quantity = (int) $validated['quantity'];
 
-    if ($quantity > $product->stock) {
-        return back()->with('error', 'Requested quantity exceeds available stock.');
+        if ($quantity > $product->stock) {
+            return back()->with('error', 'Requested quantity exceeds available stock.');
+        }
+
+        $cart = $request->session()->get('cart', []);
+
+        if (! array_key_exists($product->id, $cart)) {
+            return back()->with('error', 'Product not found in cart.');
+        }
+
+        $cart[$product->id] = $quantity;
+        $request->session()->put('cart', $cart);
+
+        return redirect()->route('cart.index')
+            ->with('success', 'Cart quantity updated.');
     }
 
-    $cart = $request->session()->get('cart', []);
-
-    if (! array_key_exists($product->id, $cart)) {
-        return back()->with('error', 'Product not found in cart.');
-    }
-
-    $cart[$product->id] = $quantity;
-    $request->session()->put('cart', $cart);
-
-    return redirect()->route('cart.index')
-        ->with('success', 'Cart quantity updated.');
-}
     public function remove(Request $request, Product $product): RedirectResponse
     {
         $cart = $request->session()->get('cart', []);
@@ -73,5 +74,15 @@ public function update(Request $request, Product $product): RedirectResponse
 
         return redirect()->route('cart.index')
             ->with('success', 'Product removed from cart.');
+    }
+
+    public function checkout(): View
+    {
+        $cart = session('cart', []);
+        abort_if(empty($cart), redirect()->route('cart.index')->getStatusCode());
+
+        $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
+
+        return view('cart.checkout', compact('cart', 'products'));
     }
 }

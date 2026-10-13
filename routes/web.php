@@ -10,7 +10,7 @@ use App\Http\Controllers\CartController;
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', fn () => match (request()->user()->role) {
+    Route::get('/dashboard', fn() => match (request()->user()->role) {
         'admin' => redirect()->route('admin.dashboard'),
         'business_owner' => redirect()->route('owner.dashboard'),
         default => redirect()->route('customer.dashboard'),
@@ -22,19 +22,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/shop', [StorefrontController::class, 'index'])->name('shop.index');
     Route::get('/shop/{product}', [StorefrontController::class, 'show'])->name('shop.show');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-Route::get('/cart', [CartController::class, 'index'])
-    ->name('cart.index');
+    Route::get('/cart', [CartController::class, 'index'])
+        ->name('cart.index');
 
-Route::post('/cart/{product}', [CartController::class, 'add'])
-    ->name('cart.add');
+    Route::post('/cart/{product}', [CartController::class, 'add'])
+        ->name('cart.add');
 
-Route::delete('/cart/{product}', [CartController::class, 'remove'])
-    ->name('cart.remove');
+    Route::delete('/cart/{product}', [CartController::class, 'remove'])
+        ->name('cart.remove');
 
 
 
-Route::patch('/cart/{product}', [CartController::class, 'update'])
-    ->name('cart.update');
+    Route::patch('/cart/{product}', [CartController::class, 'update'])
+        ->name('cart.update');
+
+Route::get('/checkout', [CartController::class,'checkout'])->name('checkout.index');
+
+
 
     Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');
     Route::view('/owner/dashboard', 'dashboards.owner')->middleware('role:business_owner')->name('owner.dashboard');
@@ -44,8 +48,8 @@ Route::patch('/cart/{product}', [CartController::class, 'update'])
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::middleware(['auth', 'role:business_owner'])->prefix('owner')->name('owner.')->group(fn () => Route::resource('products', ProductController::class)->except('show'));
-    Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(fn () => Route::resource('categories', CategoryController::class)->except('show'));
+    Route::middleware(['auth', 'role:business_owner'])->prefix('owner')->name('owner.')->group(fn() => Route::resource('products', ProductController::class)->except('show'));
+    Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(fn() => Route::resource('categories', CategoryController::class)->except('show'));
 });
 
-$app = require __DIR__.'/auth.php';
+$app = require __DIR__ . '/auth.php';
