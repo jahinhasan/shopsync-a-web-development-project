@@ -1,34 +1,125 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold text-gray-800">Admin Dashboard</h2>
+        <h2 class="text-xl font-semibold text-gray-800">
+            Admin Dashboard
+        </h2>
     </x-slot>
 
-    <div class="py-8">
-        <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Welcome, {{ auth()->user()->name }}</h1>
-                <p class="mt-1 text-sm text-gray-500">Manage your shopping platform from one place.</p>
-            </div>
+    <div class="mx-auto max-w-7xl space-y-6 px-4 py-8">
 
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ([
-                    ['Users', 'Manage customer accounts'],
-                    ['Stores', 'Review business owners'],
-                    ['Products', 'Manage product listings'],
-                    ['Orders', 'Monitor all orders'],
-                ] as [$title, $description])
-                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <h3 class="font-semibold text-gray-900">{{ $title }}</h3>
-                        <p class="mt-2 text-sm text-gray-500">{{ $description }}</p>
-                    </div>
-                @endforeach
-            </div>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">
+                Welcome, {{ auth()->user()->name }}
+            </h1>
+            <p class="mt-1 text-sm text-gray-500">
+                Monitor ShopSync users, products, categories and orders.
+            </p>
+        </div>
 
-            <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-900">Platform Management</h3>
-                <p class="mt-2 text-sm text-gray-600">User management, store approvals, product moderation, payments and reports will be implemented in the upcoming modules.</p>
+        {{-- Dashboard Statistics --}}
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach ([
+                ['Total Users', $totalUsers],
+                ['Total Products', $totalProducts],
+                ['Total Categories', $totalCategories],
+                ['Total Orders', $totalOrders],
+                ['Processed Sales', '৳' . number_format((float) $totalSales, 2)],
+            ] as [$title, $value])
+                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <p class="text-sm text-gray-500">{{ $title }}</p>
+                    <h3 class="mt-2 text-2xl font-bold text-gray-900">
+                        {{ $value }}
+                    </h3>
+                </div>
+            @endforeach
+        </div>
+
+        {{-- Admin Actions --}}
+        <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h3 class="text-lg font-semibold text-gray-900">
+                Administration
+            </h3>
+
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                <a href="{{ route('admin.categories.index') }}"
+                   class="rounded-lg border border-gray-200 p-5 transition hover:border-indigo-500 hover:bg-indigo-50">
+                    <h4 class="font-semibold text-gray-900">
+                        Category Management
+                    </h4>
+                    <p class="mt-2 text-sm text-gray-500">
+                        Create, edit and manage product categories.
+                    </p>
+                    <span class="mt-3 inline-block text-sm font-medium text-indigo-600">
+                        Manage Categories →
+                    </span>
+                </a>
+
+                <a href="{{ route('shop.index') }}"
+                   class="rounded-lg border border-gray-200 p-5 transition hover:border-indigo-500 hover:bg-indigo-50">
+                    <h4 class="font-semibold text-gray-900">
+                        View Storefront
+                    </h4>
+                    <p class="mt-2 text-sm text-gray-500">
+                        Inspect the customer-facing product catalogue.
+                    </p>
+                    <span class="mt-3 inline-block text-sm font-medium text-indigo-600">
+                        Open Store →
+                    </span>
+                </a>
             </div>
         </div>
+
+        {{-- Recent Orders --}}
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div class="border-b border-gray-200 p-5">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Recent Orders
+                </h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
+                        <tr>
+                            <th class="p-4">Order Number</th>
+                            <th class="p-4">Customer</th>
+                            <th class="p-4">Total</th>
+                            <th class="p-4">Status</th>
+                            <th class="p-4">Date</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y divide-gray-200">
+                        @forelse ($recentOrders as $order)
+                            <tr>
+                                <td class="p-4 font-medium text-gray-900">
+                                    {{ $order->order_number }}
+                                </td>
+                                <td class="p-4">
+                                    {{ $order->customer_name }}
+                                </td>
+                                <td class="p-4">
+                                    ৳{{ number_format((float) $order->total, 2) }}
+                                </td>
+                                <td class="p-4 capitalize">
+                                    {{ $order->status }}
+                                </td>
+                                <td class="whitespace-nowrap p-4">
+                                    {{ $order->created_at->format('d M Y') }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="p-6 text-center text-gray-500">
+                                    No orders have been placed yet.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </x-app-layout>

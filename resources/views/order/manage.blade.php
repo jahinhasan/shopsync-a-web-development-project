@@ -93,7 +93,7 @@
                 </div>
 
                 {{-- Update Order Status --}}
-                <form method="POST" action="{{ route('orders.update-status', $order) }}"
+                <form method="POST" action="{{ route('owner.orders.update-status', $order) }}"
                     class="mt-5 flex flex-wrap items-center gap-3">
                     @csrf
                     @method('PATCH')

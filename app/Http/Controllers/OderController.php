@@ -25,52 +25,51 @@ class OderController extends Controller
         $order->load('items');
         return view('order.show', compact('order'));
     }
-    public function manage()
-    {
-        $userId = Auth::id();
+   public function manage(): View
+{
+    $userId = Auth::id();
 
-        $orders = \App\Models\Order::whereHas('items.product', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
+    $orders = Order::whereHas('items.product', function ($query) use ($userId) {
+        $query->where('user_id', $userId);
+    })
+        ->with(['items.product', 'user'])
+        ->latest()
+        ->paginate(15);
+
+    return view('order.manage', compact('orders'));
+}
+
+public function updateStatus(
+    Request $request,
+    Order $order
+): RedirectResponse {
+    $validated = $request->validate([
+        'status' => [
+            'required',
+            Rule::in([
+                'pending',
+                'processing',
+                'shipped',
+                'delivered',
+                'cancelled',
+            ]),
+        ],
+    ]);
+
+    $ownsOrderProduct = $order->items()
+        ->whereHas('product', function ($query) {
+            $query->where('user_id', Auth::id());
         })
-            ->with(['items.product', 'user'])
-            ->latest()
-            ->paginate(15);
+        ->exists();
 
-        return view('order.manage', compact('orders'));
-    }
+    abort_unless($ownsOrderProduct, 403);
 
-    public function updateStatus(
-        \Illuminate\Http\Request $request,
-        \App\Models\Order $order
-    ) {
-        $request->validate([
-            'status' => [
-                'required',
-                \Illuminate\Validation\Rule::in([
-                    'processing',
-                    'shipped',
-                    'delivered',
-                    'cancelled',
-                ]),
-            ],
-        ]);
+    $order->update([
+        'status' => $validated['status'],
+    ]);
 
-        $userId = Auth::id();
-
-        $ownsOrderProduct = $order->items()
-            ->whereHas('product', function ($query) use ($userId) {
-                $query->where('user_id', $userId);
-            })
-            ->exists();
-
-        abort_unless($ownsOrderProduct, 403);
-
-        $order->update([
-            'status' => $request->status,
-        ]);
-
-        return redirect()
-            ->route('orders.manage')
-            ->with('success', 'Order status updated successfully.');
-    }
+    return redirect()
+        ->route('owner.order.manage')
+        ->with('success', 'Order status updated successfully.');
+}
 }

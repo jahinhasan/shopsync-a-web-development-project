@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\OrderIdem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-
+use App\Models\InventoryTransaction;
 class CartController extends Controller
 {
     public function index(Request $request): View
@@ -118,7 +118,7 @@ class CartController extends Controller
             $total = 0;
             foreach ($cart as $id => $quantity) {
                 $product = $products->get($id);
-                $QUANTITY = (int) $quantity;
+                $quantity = (int) $quantity;
                 if (
                     ! $product || ! $product->is_active ||  $quantity > $product->stock
                 ) {
@@ -153,7 +153,23 @@ class CartController extends Controller
                     'quantity' => $quantity,
                     'subtotal' => (float)$product->price * $quantity,
                 ]);
-                $product->decrement('stock', $quantity);
+              $quantityBefore = (int) $product->stock;
+$quantity = (int) $quantity;
+
+$product->decrement('stock', $quantity);
+
+$quantityAfter = $quantityBefore - $quantity;
+
+InventoryTransaction::create([
+    'product_id' => $product->id,
+    'user_id' => $product->user_id,
+    'order_id' => $order->id,
+    'type' => 'sale',
+    'quantity_before' => $quantityBefore,
+    'quantity_change' => -$quantity,
+    'quantity_after' => $quantityAfter,
+    'reason' => 'Stock reduced for order ' . $order->order_number,
+]);
             }
             return $order;
         });

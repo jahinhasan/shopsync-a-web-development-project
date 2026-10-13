@@ -57,7 +57,9 @@ class CategoryController extends Controller
      */
     public function edit(Category $category): View
     {
-               return view('admin.categories.edit', ['category' => $category, 'categories' => Category::whereKeyNot($category->id)->orderBy('name')->get()]);
+               return view('admin.categories.edit', ['category' => $category, 'categories' => Category::where('id', '!=', $category->id)
+    ->orderBy('name')
+    ->get()]);
 
     }
 
