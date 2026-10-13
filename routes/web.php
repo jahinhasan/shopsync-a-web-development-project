@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OderController;
+use App\Http\Controllers\AdminController;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -40,10 +41,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout.index');
     Route::post('/checkout', [CartController::class, 'placeOrder'])->name('checkout.place');
 
-    Route::get('/my-orders',[OderController::class,'index'])->name('orders.index');
-    Route::get('/my-orders/{order}',[OderController::class,'show'])->name('orders.show');
+    Route::get('/my-orders', [OderController::class, 'index'])->name('orders.index');
+    Route::get('/my-orders/{order}', [OderController::class, 'show'])->name('orders.show');
 
-
+    Route::get('/manage/orders', [OderController::class, 'manage'])->name('orders.manage');
+    Route::patch('/manage/orders/{order}/status', [OderController::class, 'updateStatus'])->name('orders.update-status');
     Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');
     Route::view('/owner/dashboard', 'dashboards.owner')->middleware('role:business_owner')->name('owner.dashboard');
     Route::view('/admin/dashboard', 'dashboards.admin')->middleware('role:admin')->name('admin.dashboard');
@@ -53,7 +55,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::middleware(['auth', 'role:business_owner'])->prefix('owner')->name('owner.')->group(fn() => Route::resource('products', ProductController::class)->except('show'));
+
+
+
     Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(fn() => Route::resource('categories', CategoryController::class)->except('show'));
+    Route::middleware('auth')->get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
 });
 
 $app = require __DIR__ . '/auth.php';
