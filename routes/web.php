@@ -61,6 +61,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+
+
 Route::middleware(['auth', 'role:business_owner'])
     ->prefix('owner')
     ->name('owner.')
@@ -72,6 +74,9 @@ Route::middleware(['auth', 'role:business_owner'])
             InventoryController::class,
             'updateStock',
         ])->name('products.update-stock');
+        Route::get('/inventory/history', [InventoryController::class, 'history'])
+   
+    ->name('inventory.history');
     });
 
     Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(fn() => Route::resource('categories', CategoryController::class)->except('show'));
