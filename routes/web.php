@@ -8,6 +8,7 @@ use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\OderController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Owner\DashboardController;
 
 Route::view('/', 'welcome')->name('home');
 
@@ -47,7 +48,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/manage/orders', [OderController::class, 'manage'])->name('orders.manage');
     Route::patch('/manage/orders/{order}/status', [OderController::class, 'updateStatus'])->name('orders.update-status');
     Route::view('/customer/dashboard', 'dashboards.customer')->middleware('role:customer')->name('customer.dashboard');
-    Route::view('/owner/dashboard', 'dashboards.owner')->middleware('role:business_owner')->name('owner.dashboard');
+    Route::get('/owner/dashboard', [DashboardController::class, 'index'])
+    ->middleware('role:business_owner')
+    ->name('owner.dashboard');
     Route::view('/admin/dashboard', 'dashboards.admin')->middleware('role:admin')->name('admin.dashboard');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

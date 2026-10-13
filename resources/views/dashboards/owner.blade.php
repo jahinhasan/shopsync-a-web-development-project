@@ -10,19 +10,19 @@
                 <p class="mt-1 text-sm text-gray-500">Manage your store, inventory and orders.</p>
             </div>
 
-            <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ([
-                    ['Products', 'Manage your product catalog'],
-                    ['Inventory', 'Monitor available stock'],
-                    ['Orders', 'Process customer orders'],
-                    ['Sales', 'Review store performance'],
-                ] as [$title, $description])
-                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <h3 class="font-semibold text-gray-900">{{ $title }}</h3>
-                        <p class="mt-2 text-sm text-gray-500">{{ $description }}</p>
-                    </div>
-                @endforeach
-            </div>
+<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    @foreach ([
+        ['Products', $totalProducts],
+        ['Available Stock', $totalStock],
+        ['Orders', $totalOrders],
+        ['Sales', '৳' . number_format((float) $totalSales, 2)],
+    ] as [$title, $value])
+        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <p class="text-sm text-gray-500">{{ $title }}</p>
+            <h3 class="mt-2 text-2xl font-bold text-gray-900">{{ $value }}</h3>
+        </div>
+    @endforeach
+</div>
 
             <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h3 class="text-lg font-semibold text-gray-900">Store Management</h3>
