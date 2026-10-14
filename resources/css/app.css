@@ -303,3 +303,97 @@ textarea {
         transition: none !important;
     }
 }
+
+/* ShopSync animated navigation */
+.ss-navbar {
+    transition: background-color 250ms ease, box-shadow 250ms ease;
+}
+
+.ss-navbar:hover {
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.045);
+}
+
+.ss-brand-mark {
+    box-shadow: 0 5px 14px rgba(79, 70, 229, 0.20);
+    transition: transform 250ms ease, box-shadow 250ms ease;
+}
+
+.ss-brand:hover .ss-brand-mark {
+    transform: rotate(-6deg) scale(1.06);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.28);
+}
+
+.ss-nav-link {
+    position: relative;
+    transition: color 180ms ease, background-color 180ms ease;
+}
+
+.ss-nav-link:hover {
+    background: rgba(99, 102, 241, 0.07);
+}
+
+.ss-nav-link.is-active {
+    color: rgb(79, 70, 229);
+    background: rgba(99, 102, 241, 0.09);
+}
+
+.ss-nav-link.is-active::after {
+    position: absolute;
+    right: 16px;
+    bottom: 3px;
+    left: 16px;
+    height: 2px;
+    border-radius: 999px;
+    background: rgb(99, 102, 241);
+    content: "";
+}
+
+.ss-profile-trigger {
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.ss-profile-trigger:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+.ss-profile-menu {
+    z-index: 60;
+}
+
+.ss-menu-item {
+    transition: color 160ms ease, background-color 160ms ease, padding-left 160ms ease;
+}
+
+.ss-menu-item:hover {
+    padding-left: 16px;
+    background-color: rgb(249, 250, 251);
+}
+
+.ss-menu-item.text-red-600:hover {
+    background-color: rgb(254, 242, 242);
+}
+
+.ss-mobile-toggle {
+    transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.ss-mobile-toggle:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    background-color: rgb(238, 242, 255);
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ss-brand-mark,
+    .ss-nav-link,
+    .ss-profile-trigger,
+    .ss-menu-item,
+    .ss-mobile-toggle,
+    .ss-navbar {
+        transition: none !important;
+    }
+}

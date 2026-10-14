@@ -1,100 +1,218 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
-    <!-- Primary Navigation Menu -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <!-- Logo -->
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-gray-800" />
-                    </a>
-                </div>
+<nav
+    x-data="{ open: false }"
+    class="ss-navbar sticky top-0 z-50 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl"
+>
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center justify-between gap-4">
+            <div class="flex min-w-0 items-center gap-8">
+                <a
+                    href="{{ route('dashboard') }}"
+                    class="ss-brand flex shrink-0 items-center gap-3"
+                >
+                    <span class="ss-brand-mark flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-lg font-black text-white">
+                        S
+                    </span>
+                    <span class="text-lg font-bold tracking-tight text-gray-900">
+                        Shop<span class="text-indigo-600">Sync</span>
+                    </span>
+                </a>
 
-                <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
+                <div class="hidden items-center gap-2 sm:flex">
+                    <a
+                        href="{{ route('dashboard') }}"
+                        @class([
+                            'ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold',
+                            'is-active' => request()->routeIs('dashboard'),
+                            'text-gray-600 hover:text-indigo-700' => !request()->routeIs('dashboard'),
+                        ])
+                    >
+                        Dashboard
+                    </a>
+
+                    @if (Route::has('shop.index'))
+                        <a
+                            href="{{ route('shop.index') }}"
+                            @class([
+                                'ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold',
+                                'is-active' => request()->routeIs('shop.*'),
+                                'text-gray-600 hover:text-indigo-700' => !request()->routeIs('shop.*'),
+                            ])
+                        >
+                            Shop
+                        </a>
+                    @endif
                 </div>
             </div>
 
-            <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
+            <div class="hidden items-center sm:flex">
+                <div
+                    x-data="{ profileOpen: false }"
+                    class="relative"
+                    @keydown.escape.window="profileOpen = false"
+                >
+                    <button
+                        type="button"
+                        @click="profileOpen = !profileOpen"
+                        :aria-expanded="profileOpen.toString()"
+                        class="ss-profile-trigger flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2 text-left"
+                    >
+                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-sm font-bold text-indigo-700">
+                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                        </span>
 
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </button>
-                    </x-slot>
+                        <span class="max-w-36">
+                            <span class="block truncate text-sm font-semibold text-gray-800">
+                                {{ Auth::user()->name }}
+                            </span>
+                            <span class="block text-xs text-gray-500">My account</span>
+                        </span>
 
-                    <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">
-                            {{ __('Profile') }}
-                        </x-dropdown-link>
+                        <svg
+                            aria-hidden="true"
+                            class="h-4 w-4 text-gray-500 transition-transform duration-200"
+                            :class="{ 'rotate-180': profileOpen }"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                        >
+                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.09 1.032l-4.25 4.51a.75.75 0 0 1-1.09 0l-4.25-4.51a.75.75 0 0 1 .02-1.052Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
 
-                        <!-- Authentication -->
+                    <div
+                        x-cloak
+                        x-show="profileOpen"
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+                        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                        x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+                        @click.outside="profileOpen = false"
+                        class="ss-profile-menu absolute right-0 mt-3 w-60 origin-top-right rounded-2xl border border-gray-200 bg-white p-2 shadow-xl"
+                    >
+                        <div class="border-b border-gray-100 px-3 py-3">
+                            <p class="truncate text-sm font-semibold text-gray-900">
+                                {{ Auth::user()->name }}
+                            </p>
+                            <p class="truncate text-xs text-gray-500">
+                                {{ Auth::user()->email }}
+                            </p>
+                        </div>
+
+                        <a
+                            href="{{ route('profile.edit') }}"
+                            class="ss-menu-item mt-2 block rounded-xl px-3 py-2.5 text-sm text-gray-700"
+                        >
+                            Profile settings
+                        </a>
+
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-
-                            <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault();
-                                                this.closest('form').submit();">
-                                {{ __('Log Out') }}
-                            </x-dropdown-link>
+                            <button
+                                type="submit"
+                                class="ss-menu-item block w-full rounded-xl px-3 py-2.5 text-left text-sm text-red-600"
+                            >
+                                Log out
+                            </button>
                         </form>
-                    </x-slot>
-                </x-dropdown>
+                    </div>
+                </div>
             </div>
 
-            <!-- Hamburger -->
-            <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+            <button
+                type="button"
+                @click="open = !open"
+                :aria-expanded="open.toString()"
+                aria-label="Toggle navigation menu"
+                class="ss-mobile-toggle inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 text-gray-700 sm:hidden"
+            >
+                <svg
+                    x-show="!open"
+                    aria-hidden="true"
+                    class="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                >
+                    <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round" />
+                </svg>
+
+                <svg
+                    x-cloak
+                    x-show="open"
+                    aria-hidden="true"
+                    class="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                >
+                    <path d="m6 6 12 12M18 6 6 18" stroke-linecap="round" />
+                </svg>
+            </button>
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
-        </div>
+    <div
+        x-cloak
+        x-show="open"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 -translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 -translate-y-2"
+        class="ss-mobile-menu border-t border-gray-100 bg-white px-4 pb-4 pt-3 sm:hidden"
+    >
+        <a
+            href="{{ route('dashboard') }}"
+            @class([
+                'ss-nav-link block rounded-xl px-4 py-3 text-sm font-semibold',
+                'is-active' => request()->routeIs('dashboard'),
+                'text-gray-700' => !request()->routeIs('dashboard'),
+            ])
+        >
+            Dashboard
+        </a>
 
-        <!-- Responsive Settings Options -->
-        <div class="pt-4 pb-1 border-t border-gray-200">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
-            </div>
+        @if (Route::has('shop.index'))
+            <a
+                href="{{ route('shop.index') }}"
+                @class([
+                    'ss-nav-link mt-1 block rounded-xl px-4 py-3 text-sm font-semibold',
+                    'is-active' => request()->routeIs('shop.*'),
+                    'text-gray-700' => !request()->routeIs('shop.*'),
+                ])
+            >
+                Shop
+            </a>
+        @endif
 
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
+        <div class="mt-3 border-t border-gray-100 pt-3">
+            <p class="px-3 text-sm font-semibold text-gray-900">
+                {{ Auth::user()->name }}
+            </p>
+            <p class="mt-1 px-3 text-xs text-gray-500">
+                {{ Auth::user()->email }}
+            </p>
 
-                <!-- Authentication -->
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
+            <a
+                href="{{ route('profile.edit') }}"
+                class="ss-menu-item mt-3 block rounded-xl px-3 py-2.5 text-sm text-gray-700"
+            >
+                Profile settings
+            </a>
 
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault();
-                                        this.closest('form').submit();">
-                        {{ __('Log Out') }}
-                    </x-responsive-nav-link>
-                </form>
-            </div>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button
+                    type="submit"
+                    class="ss-menu-item mt-1 block w-full rounded-xl px-3 py-2.5 text-left text-sm text-red-600"
+                >
+                    Log out
+                </button>
+            </form>
         </div>
     </div>
 </nav>
