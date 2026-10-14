@@ -138,16 +138,6 @@
 
                         <tbody class="divide-y divide-gray-100">
                             @forelse ($recentOrders as $order)
-                                @php
-                                    $statusClasses = match (strtolower((string) $order->status)) {
-                                        'pending' => 'bg-amber-100 text-amber-800',
-                                        'processing' => 'bg-blue-100 text-blue-800',
-                                        'shipped' => 'bg-violet-100 text-violet-800',
-                                        'delivered' => 'bg-green-100 text-green-800',
-                                        'cancelled' => 'bg-red-100 text-red-800',
-                                        default => 'bg-gray-100 text-gray-700',
-                                    };
-                                @endphp
 
                                 <tr class="transition hover:bg-gray-50">
                                     <td class="whitespace-nowrap px-5 py-4 font-semibold text-gray-900">
@@ -163,13 +153,27 @@
                                     </td>
 
                                     <td class="px-5 py-4">
-                                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClasses }}">
-                                            {{ ucfirst($order->status) }}
-                                        </span>
+                                        <div class="flex flex-wrap gap-1.5">
+                                            @foreach ($order->items->groupBy('status') as $itemStatus => $statusItems)
+                                                @php
+                                                    $statusClasses = match (strtolower((string) $itemStatus)) {
+                                                        'pending' => 'bg-amber-100 text-amber-800',
+                                                        'processing' => 'bg-blue-100 text-blue-800',
+                                                        'shipped' => 'bg-violet-100 text-violet-800',
+                                                        'delivered' => 'bg-green-100 text-green-800',
+                                                        'cancelled' => 'bg-red-100 text-red-800',
+                                                        default => 'bg-gray-100 text-gray-700',
+                                                    };
+                                                @endphp
+                                                <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClasses }}">
+                                                    {{ ucfirst($itemStatus) }} ({{ $statusItems->count() }})
+                                                </span>
+                                            @endforeach
+                                        </div>
                                     </td>
 
                                     <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-gray-900">
-                                        ৳{{ number_format((float) $order->total, 2) }}
+                                        ৳{{ number_format((float) $order->items->sum('subtotal'), 2) }}
                                     </td>
                                 </tr>
                             @empty
