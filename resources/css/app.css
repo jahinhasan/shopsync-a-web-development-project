@@ -1,3 +1,305 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* =========================================================
+   ShopSync Motion System
+   Preserves the existing Tailwind CSS setup.
+   ========================================================= */
+
+:root {
+    --ss-accent: 99, 102, 241;
+    --ss-cursor-size: 9px;
+    --ss-motion-duration: 220ms;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    --ss-pointer-x: 50vw;
+    --ss-pointer-y: 30vh;
+}
+
+/* Soft mouse-following background spotlight */
+.ss-spotlight {
+    position: fixed;
+    inset: 0;
+    z-index: 9990;
+    pointer-events: none;
+    background: radial-gradient(
+        460px circle at var(--ss-pointer-x) var(--ss-pointer-y),
+        rgba(var(--ss-accent), 0.075),
+        transparent 72%
+    );
+    opacity: 0;
+    transition: opacity 350ms ease;
+}
+
+.ss-motion-ready .ss-spotlight {
+    opacity: 1;
+}
+
+/* Glowing cursor indicator */
+.ss-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10000;
+    width: var(--ss-cursor-size);
+    height: var(--ss-cursor-size);
+    border-radius: 50%;
+    background: rgb(var(--ss-accent));
+    box-shadow:
+        0 0 12px rgba(var(--ss-accent), 0.65),
+        0 0 30px rgba(var(--ss-accent), 0.24);
+    pointer-events: none;
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0);
+    transition:
+        width var(--ss-motion-duration) ease,
+        height var(--ss-motion-duration) ease,
+        opacity 180ms ease,
+        background 180ms ease;
+}
+
+.ss-cursor.is-visible {
+    opacity: 1;
+}
+
+.ss-cursor.is-hovering {
+    width: 17px;
+    height: 17px;
+    background: rgba(var(--ss-accent), 0.45);
+}
+
+/* Consistent interactive transitions */
+button,
+[role="button"],
+a,
+input,
+select,
+textarea {
+    transition:
+        color var(--ss-motion-duration) ease,
+        background-color var(--ss-motion-duration) ease,
+        border-color var(--ss-motion-duration) ease,
+        box-shadow var(--ss-motion-duration) ease;
+}
+
+/* Apply this class to cards that should lift on hover */
+.ss-motion-card {
+    position: relative;
+    transition:
+        transform 280ms cubic-bezier(0.2, 0.75, 0.25, 1),
+        box-shadow 280ms ease,
+        border-color 280ms ease;
+    will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .ss-motion-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.10);
+    }
+
+    a:not(.ss-motion-card):hover {
+        text-decoration-thickness: 2px;
+    }
+}
+
+/* Scroll reveal: elements animate only when explicitly marked */
+[data-reveal] {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+        opacity 550ms ease,
+        transform 550ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+[data-reveal].ss-revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Optional staggered entrance */
+[data-reveal-delay="1"] { transition-delay: 80ms; }
+[data-reveal-delay="2"] { transition-delay: 160ms; }
+[data-reveal-delay="3"] { transition-delay: 240ms; }
+
+/* Accessible focus states */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid rgba(var(--ss-accent), 0.85);
+    outline-offset: 3px;
+}
+
+/* Touch devices do not need a custom mouse cursor */
+@media (hover: none), (pointer: coarse) {
+    .ss-cursor,
+    .ss-spotlight {
+        display: none !important;
+    }
+
+    [data-reveal] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+
+/* Respect the operating system's motion preference */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .ss-cursor,
+    .ss-spotlight {
+        display: none !important;
+    }
+
+    [data-reveal] {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* =========================================================
+   ShopSync storefront interactions
+   ========================================================= */
+
+.ss-shop-section {
+    perspective: 1200px;
+}
+
+.ss-product-card {
+    isolation: isolate;
+    transform-style: preserve-3d;
+    border-color: rgb(229 231 235);
+    background:
+        linear-gradient(145deg, rgba(255,255,255,1), rgba(249,250,251,0.97));
+}
+
+.ss-product-card::before {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    border: 1px solid transparent;
+    border-radius: inherit;
+    background: radial-gradient(
+        360px circle at var(--ss-card-x, 50%) var(--ss-card-y, 50%),
+        rgba(99,102,241,0.22),
+        transparent 65%
+    ) border-box;
+    content: "";
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .ss-product-card:hover::before {
+        opacity: 1;
+    }
+
+    .ss-tilt-card {
+        transform:
+            perspective(1100px)
+            rotateX(var(--ss-tilt-x, 0deg))
+            rotateY(var(--ss-tilt-y, 0deg));
+        transition:
+            transform 180ms ease-out,
+            box-shadow 280ms ease,
+            border-color 280ms ease;
+    }
+
+    .ss-tilt-card:hover {
+        transform:
+            perspective(1100px)
+            rotateX(var(--ss-tilt-x, 0deg))
+            rotateY(var(--ss-tilt-y, 0deg))
+            translateY(-4px);
+    }
+
+    .ss-product-image {
+        transition: transform 450ms cubic-bezier(0.2, 0.75, 0.25, 1);
+    }
+
+    .ss-product-card:hover .ss-product-image {
+        transform: scale(1.055);
+    }
+
+    .ss-detail-image-panel:hover .ss-detail-image {
+        transform: scale(1.045);
+    }
+}
+
+.ss-product-image-frame {
+    position: relative;
+    min-height: 240px;
+}
+
+.ss-product-title-link {
+    transition: color 180ms ease;
+}
+
+.ss-product-title-link:hover {
+    color: rgb(79 70 229);
+}
+
+.ss-action-button {
+    position: relative;
+    overflow: hidden;
+    transition:
+        transform 200ms ease,
+        background-color 200ms ease,
+        box-shadow 200ms ease;
+}
+
+.ss-action-button:not(:disabled):hover {
+    transform: translateY(-2px);
+    background-color: rgb(67 56 202);
+    box-shadow: 0 8px 22px rgba(79, 70, 229, 0.22);
+}
+
+.ss-action-button:not(:disabled):active {
+    transform: translateY(0) scale(0.98);
+}
+
+.ss-detail-image-panel {
+    position: relative;
+}
+
+.ss-detail-image-panel::after {
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(99,102,241,0.07);
+    border-radius: inherit;
+    content: "";
+    pointer-events: none;
+}
+
+.ss-back-link {
+    transition: gap 180ms ease, color 180ms ease;
+}
+
+.ss-back-link:hover {
+    gap: 12px;
+    color: rgb(67 56 202);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ss-tilt-card,
+    .ss-product-image,
+    .ss-action-button,
+    .ss-back-link {
+        transform: none !important;
+        transition: none !important;
+    }
+}

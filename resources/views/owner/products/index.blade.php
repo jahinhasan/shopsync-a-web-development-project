@@ -80,7 +80,9 @@
                             <td class="p-3">
                                 @if ($product->image_path)
                                     <img
-                                        src="{{ asset('storage/' . $product->image_path) }}"
+                                        src="{{ \Illuminate\Support\Str::startsWith($product->image_path, ['http://', 'https://'])
+    ? $product->image_path
+    : asset('storage/' . $product->image_path) }}"
                                         alt="{{ $product->name }}"
                                         class="h-16 w-16 rounded-lg object-cover"
                                     >

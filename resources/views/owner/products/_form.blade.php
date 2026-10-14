@@ -126,7 +126,9 @@
         <div class="mb-4">
             <p class="mb-2 font-medium">Current Image:</p>
             <img
-                src="{{ asset('storage/' . $product->image_path) }}"
+                src="{{ \Illuminate\Support\Str::startsWith($product->image_path, ['http://', 'https://'])
+    ? $product->image_path
+    : asset('storage/' . $product->image_path) }}"
                 alt="{{ $product->name }}"
                 class="h-32 w-32 rounded-lg object-cover"
         >
