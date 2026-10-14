@@ -14,7 +14,10 @@ class OderController extends Controller
 {
     public function index(): View
     {
-        $orders = Order::where('user_id', Auth::id())->latest()->paginate(12);
+        $orders = Order::where('user_id', Auth::id())
+            ->with('items')
+            ->latest()
+            ->paginate(12);
 
         return view('order.index', compact('orders'));
     }
@@ -53,6 +56,7 @@ class OderController extends Controller
         Order $order
     ): RedirectResponse {
         $validated = $request->validate([
+            'item_id' => ['required', 'integer'],
             'status' => [
                 'required',
                 Rule::in([
@@ -67,13 +71,12 @@ class OderController extends Controller
 
         $userId = Auth::id();
 
-        $ownsOrderProduct = $order->items()
+        $item = $order->items()
+            ->whereKey($validated['item_id'])
             ->whereHas('product', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
-            ->exists();
-
-        abort_unless($ownsOrderProduct, 403);
+            ->firstOrFail();
 
         $allowedTransitions = [
             'pending' => ['processing', 'cancelled'],
@@ -83,8 +86,12 @@ class OderController extends Controller
             'cancelled' => [],
         ];
 
-        $currentStatus = $order->status;
+        $currentStatus = $item->status;
         $newStatus = $validated['status'];
+
+        if ($currentStatus === $newStatus) {
+            return back()->with('success', 'Item status is unchanged.');
+        }
 
         if (! in_array(
             $newStatus,
@@ -93,18 +100,15 @@ class OderController extends Controller
         )) {
             return back()
                 ->withErrors([
-                    'status' => "Cannot change order status from {$currentStatus} to {$newStatus}.",
+                    'status' => "Cannot change item status from {$currentStatus} to {$newStatus}.",
                 ])
                 ->withInput();
         }
 
-
-        $order->update([
-            'status' => $validated['status'],
-        ]);
+        $item->update(['status' => $newStatus]);
 
         return redirect()
             ->route('owner.order.manage')
-            ->with('success', 'Order status updated successfully.');
+            ->with('success', 'Product order status updated successfully.');
     }
 }

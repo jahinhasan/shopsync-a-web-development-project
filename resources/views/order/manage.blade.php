@@ -64,7 +64,7 @@
 
                         <div class="space-y-3">
                             @foreach ($order->items as $item)
-                                <div class="flex flex-wrap justify-between gap-3 rounded-lg bg-gray-50 p-3">
+                                <div class="flex flex-wrap justify-between gap-4 rounded-lg bg-gray-50 p-4">
                                     <div>
                                         <p class="font-medium text-gray-800">
                                             {{ $item->product_name }}
@@ -72,6 +72,13 @@
 
                                         <p class="text-sm text-gray-500">
                                             Quantity: {{ $item->quantity }}
+                                        </p>
+
+                                        <p class="mt-1 text-sm text-gray-600">
+                                            Status:
+                                            <span class="font-medium capitalize">
+                                                {{ $item->status }}
+                                            </span>
                                         </p>
                                     </div>
 
@@ -86,36 +93,41 @@
                                             ৳{{ number_format((float) $item->subtotal, 2) }}
                                         </p>
                                     </div>
+
+                                    <form method="POST"
+                                        action="{{ route('owner.orders.update-status', $order) }}"
+                                        class="flex w-full flex-wrap items-center gap-3 border-t border-gray-200 pt-3">
+                                        @csrf
+                                        @method('PATCH')
+
+                                        <input type="hidden" name="item_id" value="{{ $item->id }}">
+
+                                        <label for="status-{{ $item->id }}"
+                                            class="text-sm font-medium text-gray-700">
+                                            Update product status
+                                        </label>
+
+                                        <select id="status-{{ $item->id }}" name="status" required
+                                            class="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                            @foreach (['pending', 'processing', 'shipped', 'delivered', 'cancelled'] as $status)
+                                                <option value="{{ $status }}" @selected($item->status === $status)>
+                                                    {{ ucfirst($status) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+
+                                        <button type="submit"
+                                            class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700">
+                                            Update Status
+                                        </button>
+                                    </form>
                                 </div>
                             @endforeach
                         </div>
                     </div>
                 </div>
 
-                {{-- Update Order Status --}}
-                <form method="POST" action="{{ route('owner.orders.update-status', $order) }}"
-                    class="mt-5 flex flex-wrap items-center gap-3">
-                    @csrf
-                    @method('PATCH')
 
-                    <label for="status-{{ $order->id }}" class="text-sm font-medium text-gray-700">
-                        Update Status
-                    </label>
-
-                    <select id="status-{{ $order->id }}" name="status" required
-                        class="rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        @foreach (['pending', 'processing', 'shipped', 'delivered', 'cancelled'] as $status)
-                            <option value="{{ $status }}" @selected($order->status === $status)>
-                                {{ ucfirst($status) }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    <button type="submit"
-                        class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700">
-                        Update Status
-                    </button>
-                </form>
 
             </div>
         @empty

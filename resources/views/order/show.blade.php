@@ -31,6 +31,10 @@
                 <div class="flex justify-between gap-4 border-b py-3">
                     <div>
                         <p>{{ $item->product_name }}</p>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Fulfillment Status:
+                            <span class="font-medium capitalize">{{ $item->status }}</span>
+                        </p>
                         <p class="text-sm text-gray-500">
                             ৳{{ number_format((float) $item->unit_price, 2) }}
                             × {{ $item->quantity }}

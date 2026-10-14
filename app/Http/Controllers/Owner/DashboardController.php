@@ -37,9 +37,7 @@ class DashboardController extends Controller
             ->whereHas('product', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
-            ->whereHas('order', function ($query) use ($salesStatuses) {
-                $query->whereIn('status', $salesStatuses);
-            });
+            ->whereIn('status', $salesStatuses);
 
         $totalSales = (clone $ownerOrderItems)->sum('subtotal');
 
@@ -60,15 +58,17 @@ class DashboardController extends Controller
             ->take(6)
             ->get();
 
-        $pendingOrders = (clone $ownerOrdersQuery)
+        $pendingOrders = OrderIdem::query()
+            ->whereHas('product', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
             ->whereIn('status', ['pending', 'processing'])
             ->distinct()
-            ->count('orders.id');
+            ->count('order_id');
 
         $todaySales = (clone $ownerOrderItems)
-            ->whereHas('order', function ($query) use ($salesStatuses) {
-                $query->whereIn('status', $salesStatuses)
-                    ->whereDate('created_at', today());
+            ->whereHas('order', function ($query) {
+                $query->whereDate('created_at', today());
             })
             ->sum('subtotal');
 

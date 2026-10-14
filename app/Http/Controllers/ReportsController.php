@@ -106,31 +106,25 @@ class ReportsController extends Controller
         $salesStatuses = ['processing', 'shipped', 'delivered'];
 
         $totalSales = (clone $orderItems)
-            ->whereHas('order', function ($query) use ($salesStatuses) {
-                $query->whereIn('status', $salesStatuses);
-            })
+            ->whereIn('status', $salesStatuses)
             ->sum('subtotal');
 
         $totalItemsSold = (clone $orderItems)
-            ->whereHas('order', function ($query) use ($salesStatuses) {
-                $query->whereIn('status', $salesStatuses);
-            })
+            ->whereIn('status', $salesStatuses)
             ->sum('quantity');
 
         $totalOrders = (clone $orderItems)
-            ->whereHas('order', function ($query) use ($salesStatuses) {
-                $query->whereIn('status', $salesStatuses);
-            })
-            ->distinct('order_id')
+            ->whereIn('status', $salesStatuses)
+            ->distinct()
             ->count('order_id');
 
         $dailySales = (clone $orderItems)
-            ->whereHas('order', function ($query) use ($from, $to, $salesStatuses) {
-                $query->whereIn('status', $salesStatuses)
-                    ->whereBetween('created_at', [
-                        $from->copy()->startOfDay(),
-                        $to->copy()->endOfDay(),
-                    ]);
+            ->whereIn('order_idems.status', $salesStatuses)
+            ->whereHas('order', function ($query) use ($from, $to) {
+                $query->whereBetween('created_at', [
+                    $from->copy()->startOfDay(),
+                    $to->copy()->endOfDay(),
+                ]);
             })
             ->join('orders', 'order_idems.order_id', '=', 'orders.id')
             ->selectRaw('DATE(orders.created_at) as sale_date, SUM(order_idems.subtotal) as sales, SUM(order_idems.quantity) as quantity_sold')
@@ -139,12 +133,12 @@ class ReportsController extends Controller
             ->get();
 
         $bestSellingProducts = (clone $orderItems)
-            ->whereHas('order', function ($query) use ($from, $to, $salesStatuses) {
-                $query->whereIn('status', $salesStatuses)
-                    ->whereBetween('created_at', [
-                        $from->copy()->startOfDay(),
-                        $to->copy()->endOfDay(),
-                    ]);
+            ->whereIn('status', $salesStatuses)
+            ->whereHas('order', function ($query) use ($from, $to) {
+                $query->whereBetween('created_at', [
+                    $from->copy()->startOfDay(),
+                    $to->copy()->endOfDay(),
+                ]);
             })
             ->selectRaw('product_id, MAX(product_name) as product_name, SUM(quantity) as quantity_sold, SUM(subtotal) as revenue')
             ->groupBy('product_id')

@@ -29,8 +29,11 @@
                             ৳{{ number_format((float) $order->total, 2) }}
                         </p>
 
-                        <p class="mt-1 text-sm capitalize">
-                            {{ $order->status }}
+                        <p class="mt-1 text-sm text-gray-600">
+                            Item statuses:
+                            <span class="font-medium">
+                                {{ $order->items->groupBy('status')->map(fn ($items, $status) => ucfirst($status) . ': ' . $items->count())->implode(' · ') }}
+                            </span>
                         </p>
                     </div>
                 </div>
