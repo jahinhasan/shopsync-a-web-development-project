@@ -60,8 +60,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/my-orders/{order}', [OderController::class, 'show'])
         ->name('orders.show');
 
-    // Customer dashboard
-    Route::view('/customer/dashboard', 'dashboards.customer')
+    // Customer shopping dashboard
+    Route::get('/customer/dashboard', [
+        \App\Http\Controllers\Customer\DashboardController::class,
+        'index',
+    ])
         ->middleware('role:customer')
         ->name('customer.dashboard');
 
