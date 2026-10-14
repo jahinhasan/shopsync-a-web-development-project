@@ -14,6 +14,7 @@ class OrderIdem extends Model
         'unit_price',
         'quantity',
         'subtotal',
+        'status',
     ];
 
     public function order(): BelongsTo
