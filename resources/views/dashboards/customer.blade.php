@@ -74,45 +74,40 @@
                 </div>
             </section>
 
-            {{-- Shop by category --}}
-            <section>
-                <div class="mb-5 flex items-end justify-between gap-3">
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-widest text-indigo-600">Explore</p>
-                        <h2 class="mt-1 text-2xl font-bold text-gray-900">Shop by category</h2>
-                    </div>
-                    <a href="{{ route('shop.index') }}"
-                       class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">
-                        All products →
-                    </a>
-                </div>
+{{-- Shop by category dropdown filter --}}
+<section>
+    <form action="{{ route('shop.index') }}" method="GET"
+          class="flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-end">
 
-                @if ($categories->isNotEmpty())
-                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                        @foreach ($categories as $category)
-                            <a
-                                href="{{ route('shop.index', ['category' => $category->slug]) }}"
-                                class="ss-motion-card rounded-2xl border border-gray-200 bg-white p-4 hover:border-indigo-300"
-                                data-reveal
-                            >
-                                <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-lg font-bold text-indigo-600">
-                                    {{ strtoupper(mb_substr($category->name, 0, 1)) }}
-                                </span>
-                                <h3 class="mt-3 line-clamp-2 text-sm font-bold text-gray-900">
-                                    {{ $category->name }}
-                                </h3>
-                                <p class="mt-1 text-xs text-gray-500">
-                                    Explore category →
-                                </p>
-                            </a>
-                        @endforeach
-                    </div>
-                @else
-                    <p class="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-                        No active categories with available products yet.
-                    </p>
-                @endif
-            </section>
+        <div class="flex-1">
+            <label for="customer-category"
+                   class="mb-2 block text-sm font-bold text-gray-900">
+                Shop by Category
+            </label>
+
+            <select
+                id="customer-category"
+                name="category"
+                class="w-full rounded-xl border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+                <option value="">All Categories</option>
+
+                @foreach ($categories as $category)
+                    <option value="{{ $category->slug }}">
+                        {{ $category->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <button
+            type="submit"
+            class="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
+        >
+            Filter Products
+        </button>
+    </form>
+</section>
 
             {{-- Featured products --}}
             <section>
