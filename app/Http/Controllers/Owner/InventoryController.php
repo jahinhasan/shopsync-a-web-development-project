@@ -69,9 +69,19 @@ class InventoryController extends Controller
         return back()->with('success', 'Stock updated and history recorded successfully.');
     }
 
-    public function history(): View{
-$transactions= InventoryTransaction::where('user_id',Auth::id())
-->with('product')->latest()->paginate(20);
-return view('owner.inventory.history',compact('transactions'));
+    public function history(): View
+    {
+        $userId = Auth::id();
+
+        $transactions = InventoryTransaction::query()
+            ->where('user_id', $userId)
+            ->whereHas('product', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->with('product')
+            ->latest()
+            ->paginate(20);
+
+        return view('owner.inventory.history', compact('transactions'));
     }
 }

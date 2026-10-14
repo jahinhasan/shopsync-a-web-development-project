@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderIdem;
 use App\Models\Product;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -32,9 +33,15 @@ class DashboardController extends Controller
             ->distinct()
             ->count('orders.id');
 
-        $totalSales = (clone $ownerOrdersQuery)
-            ->whereIn('status', $salesStatuses)
-            ->sum('total');
+        $ownerOrderItems = OrderIdem::query()
+            ->whereHas('product', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->whereHas('order', function ($query) use ($salesStatuses) {
+                $query->whereIn('status', $salesStatuses);
+            });
+
+        $totalSales = (clone $ownerOrderItems)->sum('subtotal');
 
         $lowStockProducts = (clone $productsQuery)
             ->where('stock', '<=', 5)
@@ -58,10 +65,12 @@ class DashboardController extends Controller
             ->distinct()
             ->count('orders.id');
 
-        $todaySales = (clone $ownerOrdersQuery)
-            ->whereIn('status', $salesStatuses)
-            ->whereDate('orders.created_at', today())
-            ->sum('total');
+        $todaySales = (clone $ownerOrderItems)
+            ->whereHas('order', function ($query) use ($salesStatuses) {
+                $query->whereIn('status', $salesStatuses)
+                    ->whereDate('created_at', today());
+            })
+            ->sum('subtotal');
 
         $todayOrders = (clone $ownerOrdersQuery)
             ->whereDate('orders.created_at', today())

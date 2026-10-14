@@ -30,16 +30,16 @@ class OderController extends Controller
     {
         $userId = Auth::id();
 
-        $orders = Order::whereHas('items.product', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
-        })
+        $orders = Order::query()
+            ->whereHas('items.product', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
             ->with([
                 'items' => function ($query) use ($userId) {
                     $query->whereHas('product', function ($productQuery) use ($userId) {
                         $productQuery->where('user_id', $userId);
-                    });
+                    })->with('product');
                 },
-                'items.product',
                 'user',
             ])
             ->latest()
@@ -65,9 +65,11 @@ class OderController extends Controller
             ],
         ]);
 
+        $userId = Auth::id();
+
         $ownsOrderProduct = $order->items()
-            ->whereHas('product', function ($query) {
-                $query->where('user_id', Auth::id());
+            ->whereHas('product', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
             })
             ->exists();
 

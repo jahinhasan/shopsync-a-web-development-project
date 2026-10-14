@@ -2,35 +2,45 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
-   public function dashboard(): View
+    public function dashboard(): View
     {
         $totalUsers = User::count();
-
         $totalProducts = Product::count();
-
         $totalCategories = Category::count();
-
         $totalOrders = Order::count();
 
-        $totalSales = Order::whereIn('status', [
-            'processing',
-            'shipped',
-            'delivered',
-        ])->sum('total');
+        $salesStatuses = ['processing', 'shipped', 'delivered'];
 
-        $recentOrders = Order::latest()
-            ->take(5)
+        $totalSales = Order::query()
+            ->whereIn('status', $salesStatuses)
+            ->sum('total');
+
+        $recentOrders = Order::query()
+            ->with('user')
+            ->latest()
+            ->take(6)
             ->get();
+
+        $lowStockProducts = Product::query()
+            ->with('owner')
+            ->where('stock', '<=', 5)
+            ->orderBy('stock')
+            ->orderBy('name')
+            ->take(8)
+            ->get();
+
+        $roleCounts = User::query()
+            ->selectRaw('role, COUNT(*) as total')
+            ->groupBy('role')
+            ->pluck('total', 'role');
 
         return view('dashboards.admin', compact(
             'totalUsers',
@@ -38,7 +48,9 @@ class AdminController extends Controller
             'totalCategories',
             'totalOrders',
             'totalSales',
-            'recentOrders'
+            'recentOrders',
+            'lowStockProducts',
+            'roleCounts',
         ));
     }
 }
