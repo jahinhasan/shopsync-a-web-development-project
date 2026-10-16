@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ShopApplication extends Model
 {
-      protected $fillable = [
+    protected $fillable = [
         'user_id',
         'assigned_admin_id',
         'reviewed_by',
@@ -44,7 +44,7 @@ class ShopApplication extends Model
         'admin_notes',
         'rejection_reason',
         'reviewed_at',
-            ];
+    ];
 
     protected function casts(): array
     {
@@ -59,7 +59,7 @@ class ShopApplication extends Model
     {
         return $this->belongsTo(User::class, 'user_id');
     }
-        public function assignedAdmin(): BelongsTo
+    public function assignedAdmin(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_admin_id');
     }
@@ -75,5 +75,10 @@ class ShopApplication extends Model
     public function media(): HasMany
     {
         return $this->hasMany(ShopApplicationMedia::class);
+    }
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ShopApplicationReview::class)
+            ->oldest();
     }
 }
