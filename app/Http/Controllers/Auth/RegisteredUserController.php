@@ -32,7 +32,7 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'role' => ['required', 'in:customer,business_owner'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
@@ -40,16 +40,21 @@ class RegisteredUserController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            
+
             'password' => Hash::make($request->password),
             'role' => $request->role,
-            
+
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        if ($user->role === 'business_owner') {
+            return redirect()->route('owner.shop-application.create');
+        }
+        
+
+        return redirect()->route('dashboard');
     }
 }

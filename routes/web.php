@@ -80,7 +80,7 @@ Route::middleware('auth')->group(function () {
         ->name('profile.destroy');
 
     // Business owner routes
-    Route::middleware('role:business_owner')
+    Route::middleware(['role:business_owner',  'shop.approved',])
         ->prefix('owner')
         ->name('owner.')
         ->group(function () {
@@ -90,10 +90,13 @@ Route::middleware('auth')->group(function () {
 
 
             Route::get('/shop-application', [ShopApplicationController::class, 'create'])
-    ->name('shop-application.create');
+                ->name('shop-application.create');
 
-Route::get('/shop-application/status', [ShopApplicationController::class, 'status'])
-    ->name('shop-application.status');
+            Route::post('/shop-application', [ShopApplicationController::class, 'store'])
+                ->name('shop-application.store');
+
+            Route::get('/shop-application/status', [ShopApplicationController::class, 'status'])
+                ->name('shop-application.status');
 
             Route::resource('products', ProductController::class)
                 ->except('show');
@@ -123,8 +126,6 @@ Route::get('/shop-application/status', [ShopApplicationController::class, 'statu
                 \App\Http\Controllers\ReportsController::class,
                 'owner',
             ])->name('reports');
-
-
         });
 
     // Admin dashboard — only one route

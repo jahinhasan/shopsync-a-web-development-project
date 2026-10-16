@@ -21,7 +21,7 @@
 
     <select id="role" name="role" required
         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-        <option defalt value="customer" @selected(old('role') === 'customer')>
+        <option default value="customer" @selected(old('role') === 'customer')>
             Customer
         </option>
         <option value="business_owner" @selected(old('role') === 'business_owner')>
@@ -56,14 +56,34 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
-                {{ __('Already registered?') }}
-            </a>
+<!-- Login Link and Submit Button -->
+<div class="flex items-center justify-end mt-4">
+    <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+       href="{{ route('login') }}">
+        {{ __('Already registered? Login') }}
+    </a>
 
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
-            </x-primary-button>
-        </div>
-    </form>
+    <x-primary-button id="register-button" class="ms-4">
+        Register
+    </x-primary-button>
+</div>
+
+<!-- Change button text based on selected role -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const roleSelect = document.getElementById('role');
+        const registerButton = document.getElementById('register-button');
+
+        function updateButtonText() {
+            registerButton.textContent =
+                roleSelect.value === 'business_owner'
+                    ? 'Continue to Shop Registration'
+                    : 'Register';
+        }
+
+        roleSelect.addEventListener('change', updateButtonText);
+        updateButtonText();
+    });
+</script>
+</form>
 </x-guest-layout>
