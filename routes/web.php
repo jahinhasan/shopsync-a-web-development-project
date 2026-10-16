@@ -12,6 +12,7 @@ use App\Http\Controllers\Owner\InventoryController;
 use App\Http\Controllers\Owner\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StorefrontController;
+use App\Http\Controllers\ShopApplicationController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -87,6 +88,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/dashboard', [DashboardController::class, 'index'])
                 ->name('dashboard');
 
+
+            Route::get('/shop-application', [ShopApplicationController::class, 'create'])
+    ->name('shop-application.create');
+
+Route::get('/shop-application/status', [ShopApplicationController::class, 'status'])
+    ->name('shop-application.status');
+
             Route::resource('products', ProductController::class)
                 ->except('show');
 
@@ -115,6 +123,8 @@ Route::middleware('auth')->group(function () {
                 \App\Http\Controllers\ReportsController::class,
                 'owner',
             ])->name('reports');
+
+
         });
 
     // Admin dashboard — only one route
