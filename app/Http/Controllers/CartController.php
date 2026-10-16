@@ -12,20 +12,34 @@ use App\Models\OrderIdem;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Models\InventoryTransaction;
+
 class CartController extends Controller
 {
-    public function index(Request $request): View
-    {
-        $cart = $request->session()->get('cart', []);
+public function index(Request $request): View
+{
+    $removed = $this->purgeUnavailableCartProducts($request);
 
-        $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
+    $cart = $request->session()->get('cart', []);
 
-        return view('cart.index', compact('cart', 'products'));
+    $products = Product::query()
+        ->availableToCustomers()
+        ->whereIn('id', array_keys($cart))
+        ->get()
+        ->keyBy('id');
+
+    if ($removed) {
+        $request->session()->flash(
+            'error',
+            'Unavailable products were removed from your cart.'
+        );
     }
+
+    return view('cart.index', compact('cart', 'products'));
+}
 
     public function add(Request $request, Product $product): RedirectResponse
     {
-        abort_unless($product->is_active && $product->stock > 0, 404);
+        abort_unless($product->isAvailableToCustomers(), 404);
 
         $cart = $request->session()->get('cart', []);
         $id = $product->id;
@@ -49,7 +63,7 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        abort_unless($product->is_active, 404);
+        abort_unless($product->isAvailableToCustomers(), 404);
 
         $quantity = (int) $validated['quantity'];
 
@@ -82,22 +96,24 @@ class CartController extends Controller
     }
 
 
-public function checkout(): View|RedirectResponse
-{
-    $cart = session('cart', []);
+    public function checkout(): View|RedirectResponse
+    {
+        $cart = session('cart', []);
+        $removed = $this->purgeUnavailableCartProducts(request());
 
-    if (empty($cart)) {
-        return redirect()
-            ->route('cart.index')
-            ->with('error', 'Your cart is empty. Please add products before checkout.');
+
+        if (empty($cart)) {
+            return redirect()
+                ->route('cart.index')
+                ->with('error', 'Your cart is empty. Please add products before checkout.');
+        }
+
+        $products = Product::whereIn('id', array_keys($cart))
+            ->get()
+            ->keyBy('id');
+
+        return view('cart.checkout', compact('cart', 'products'));
     }
-
-    $products = Product::whereIn('id', array_keys($cart))
-        ->get()
-        ->keyBy('id');
-
-    return view('cart.checkout', compact('cart', 'products'));
-}
 
 
     public function placeOrder(Request $request, Product $products): RedirectResponse
@@ -114,8 +130,8 @@ public function checkout(): View|RedirectResponse
             return redirect()->route('cart.index')->with('error', 'your cart is empty');
         }
 
-        foreach($cart as $quantity){
-            if(! is_numeric($quantity) || (int) $quantity != $quantity || $quantity < 1){
+        foreach ($cart as $quantity) {
+            if (! is_numeric($quantity) || (int) $quantity != $quantity || $quantity < 1) {
                 return redirect()->route('cart.index')->with('error', 'Invalid quantity in cart');
             }
         }
@@ -129,7 +145,7 @@ public function checkout(): View|RedirectResponse
                 $product = $products->get($id);
                 $quantity = (int) $quantity;
                 if (
-                    ! $product || ! $product->is_active ||  $quantity > $product->stock
+                    ! $product || !$product->isAvailableToCustomers() ||  $quantity > $product->stock
                 ) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
                         'cart' => 'A product is unavailable or its stock has changed. please review your cart.',
@@ -162,28 +178,62 @@ public function checkout(): View|RedirectResponse
                     'quantity' => $quantity,
                     'subtotal' => (float)$product->price * $quantity,
                 ]);
-              $quantityBefore = (int) $product->stock;
-$quantity = (int) $quantity;
+                $quantityBefore = (int) $product->stock;
+                $quantity = (int) $quantity;
 
-$product->decrement('stock', $quantity);
+                $product->decrement('stock', $quantity);
 
-$quantityAfter = $quantityBefore - $quantity;
+                $quantityAfter = $quantityBefore - $quantity;
 
-InventoryTransaction::create([
-    'product_id' => $product->id,
-    'user_id' => $product->user_id,
-    'order_id' => $order->id,
-    'type' => 'sale',
-    'quantity_before' => $quantityBefore,
-    'quantity_change' => -$quantity,
-    'quantity_after' => $quantityAfter,
-    'reason' => 'Stock reduced for order ' . $order->order_number,
-]);
+                InventoryTransaction::create([
+                    'product_id' => $product->id,
+                    'user_id' => $product->user_id,
+                    'order_id' => $order->id,
+                    'type' => 'sale',
+                    'quantity_before' => $quantityBefore,
+                    'quantity_change' => -$quantity,
+                    'quantity_after' => $quantityAfter,
+                    'reason' => 'Stock reduced for order ' . $order->order_number,
+                ]);
             }
             return $order;
         });
 
         $request->session()->forget('cart');
         return redirect()->route('cart.index')->with('success', 'Order placed successfully. Your order number is: ' . $order->order_number);
+    }
+
+    private function purgeUnavailableCartProducts(Request $request): bool
+    {
+        $cart = $request->session()->get('cart', []);
+
+        if (empty($cart)) {
+            return false;
+        }
+
+        $products = Product::withTrashed()
+            ->whereIn('id', array_keys($cart))
+            ->with('owner.shopApplication')
+            ->get()
+            ->keyBy('id');
+
+        $removed = false;
+
+        foreach (array_keys($cart) as $productId) {
+            $product = $products->get($productId);
+
+            if (
+                !$product
+                || $product->trashed()
+                || !$product->isAvailableToCustomers()
+            ) {
+                unset($cart[$productId]);
+                $removed = true;
+            }
+        }
+
+        $request->session()->put('cart', $cart);
+
+        return $removed;
     }
 }

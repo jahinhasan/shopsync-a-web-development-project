@@ -14,6 +14,8 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\ShopApplicationController;
 use App\Http\Controllers\Admin\ShopApplicationController as AdminShopApplicationController;
+use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\UserNotificationController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -34,6 +36,20 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/shop/{product}', [StorefrontController::class, 'show'])
         ->name('shop.show');
+        Route::get('/notifications', [
+    UserNotificationController::class,
+    'index',
+])->name('notifications.index');
+
+Route::patch('/notifications/{notificationId}/read', [
+    UserNotificationController::class,
+    'markAsRead',
+])->name('notifications.read');
+
+Route::patch('/notifications/read-all', [
+    UserNotificationController::class,
+    'markAllAsRead',
+])->name('notifications.read-all');
 
     // Cart
     Route::get('/cart', [CartController::class, 'index'])
@@ -141,51 +157,80 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
             Route::resource('categories', CategoryController::class)
                 ->except('show');
-            
-                Route::get('/shop-applications', [
-    AdminShopApplicationController::class,
-    'index',
-])->name('shop-applications.index');
 
-Route::get('/shop-applications/{application}', [
-    AdminShopApplicationController::class,
-    'show',
-])->name('shop-applications.show');
+            Route::get('/shop-applications', [
+                AdminShopApplicationController::class,
+                'index',
+            ])->name('shop-applications.index');
 
-Route::patch('/shop-applications/{application}/approve', [
-    AdminShopApplicationController::class,
-    'approve',
-])->name('shop-applications.approve');
+            Route::get('/shop-applications/{application}', [
+                AdminShopApplicationController::class,
+                'show',
+            ])->name('shop-applications.show');
 
-Route::patch('/shop-applications/{application}/request-information', [
-    AdminShopApplicationController::class,
-    'requestInformation',
-])->name('shop-applications.request-information');
+            Route::patch('/shop-applications/{application}/approve', [
+                AdminShopApplicationController::class,
+                'approve',
+            ])->name('shop-applications.approve');
 
-Route::patch('/shop-applications/{application}/reject', [
-    AdminShopApplicationController::class,
-    'reject',
-])->name('shop-applications.reject');
+            Route::patch('/shop-applications/{application}/request-information', [
+                AdminShopApplicationController::class,
+                'requestInformation',
+            ])->name('shop-applications.request-information');
 
-Route::get('/shop-applications/{application}/documents/{document}', [
-    AdminShopApplicationController::class,
-    'document',
-])->whereIn('document', ['identity-photo', 'identity-document'])
-  ->name('shop-applications.documents');
+            Route::patch('/shop-applications/{application}/reject', [
+                AdminShopApplicationController::class,
+                'reject',
+            ])->name('shop-applications.reject');
 
-Route::get('/shop-applications/{application}/media/{mediaId}', [
-    AdminShopApplicationController::class,
-    'media',
-])->whereNumber('mediaId')
-  ->name('shop-applications.media');                
+            Route::get('/shop-applications/{application}/documents/{document}', [
+                AdminShopApplicationController::class,
+                'document',
+            ])->whereIn('document', ['identity-photo', 'identity-document'])
+                ->name('shop-applications.documents');
+
+            Route::get('/shop-applications/{application}/media/{mediaId}', [
+                AdminShopApplicationController::class,
+                'media',
+            ])->whereNumber('mediaId')
+                ->name('shop-applications.media');
+
+            // Admin product and shop moderation
+            Route::get('/moderation', [
+                ModerationController::class,
+                'index',
+            ])->name('moderation.index');
+
+            Route::patch('/moderation/products/{productId}/suspend', [
+                ModerationController::class,
+                'suspendProduct',
+            ])->whereNumber('productId')->name('moderation.products.suspend');
+
+            Route::patch('/moderation/products/{productId}/warn', [
+                ModerationController::class,
+                'warnProductOwner',
+            ])->whereNumber('productId')->name('moderation.products.warn');
+
+            Route::delete('/moderation/products/{productId}', [
+                ModerationController::class,
+                'removeProduct',
+            ])->whereNumber('productId')->name('moderation.products.remove');
+
+            Route::patch('/moderation/products/{productId}/restore', [
+                ModerationController::class,
+                'restoreProduct',
+            ])->whereNumber('productId')->name('moderation.products.restore');
+
+            Route::patch('/moderation/shops/{applicationId}/status', [
+                ModerationController::class,
+                'updateShopStatus',
+            ])->whereNumber('applicationId')->name('moderation.shops.status');
         });
 
     Route::get('/admin/reports', [
         \App\Http\Controllers\ReportsController::class,
         'admin',
     ])->middleware('role:admin')->name('admin.reports');
-
-    
 });
 
 require __DIR__ . '/auth.php';

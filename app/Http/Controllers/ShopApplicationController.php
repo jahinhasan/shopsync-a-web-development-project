@@ -354,9 +354,12 @@ public function status()
 
     abort_unless($application, 404);
 
-    if ($application->status === 'approved') {
-        return redirect()->route('owner.dashboard');
-    }
+if (
+    $application->status === 'approved'
+    && $application->shop_status === 'active'
+) {
+    return redirect()->route('owner.dashboard');
+}
 
     return view(
         'shop-application.status',

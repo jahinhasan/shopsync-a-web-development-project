@@ -63,6 +63,15 @@ class EnsureShopApplicationApproved
                     'Your shop must be approved before you can access owner features.'
                 );
         }
+        if ($application->shop_status !== 'active') {
+    return redirect()
+        ->route('owner.shop-application.status')
+        ->with(
+            'warning',
+            'Your shop is currently ' . $application->shop_status .
+            '. Seller management access is disabled.'
+        );
+}
         return $next($request);
     }
 }

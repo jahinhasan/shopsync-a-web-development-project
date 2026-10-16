@@ -14,10 +14,9 @@ class StorefrontController extends Controller
         $search = trim((string) $request->query('q', ''));
         $categorySlug = trim((string) $request->query('category', ''));
 
-        $productsQuery = Product::query()
-            ->where('is_active', true)
-            ->where('stock', '>', 0)
-            ->with(['owner', 'category']);
+$productsQuery = Product::query()
+    ->availableToCustomers()
+    ->with(['owner', 'category']);
 
         if ($search !== '') {
             $productsQuery->where(function ($query) use ($search) {
@@ -53,7 +52,7 @@ class StorefrontController extends Controller
 
     public function show(Product $product): View
     {
-        abort_unless($product->is_active && $product->stock > 0, 404);
+       abort_unless($product->isAvailableToCustomers(), 404);
 
         $product->load(['category', 'owner']);
 
