@@ -16,7 +16,8 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between gap-4">
             <div class="flex min-w-0 items-center gap-8">
-                <a href="{{ $isBusinessOwner && !$isOwnerApproved ? $applicationUrl : route('dashboard') }}" class="ss-brand flex shrink-0 items-center gap-3">
+                <a href="{{ $isBusinessOwner && !$isOwnerApproved ? $applicationUrl : route('dashboard') }}"
+                    class="ss-brand flex shrink-0 items-center gap-3">
                     <span
                         class="ss-brand-mark flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-lg font-black text-white">
                         S
@@ -43,6 +44,16 @@
                                 'text-gray-600 hover:text-indigo-700' => !request()->routeIs('shop.*'),
                             ])>
                                 Shop
+                            </a>
+                        @endif
+                        @if (Auth::user()?->role === 'admin')
+                            <a href="{{ route('admin.shop-applications.index') }}" @class([
+                                'ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold',
+                                'is-active' => request()->routeIs('admin.shop-applications.*'),
+                                'text-gray-600 hover:text-indigo-700' => !request()->routeIs(
+                                    'admin.shop-applications.*'),
+                            ])>
+                                Shop Applications
                             </a>
                         @endif
                     @else
@@ -152,6 +163,15 @@
                     'text-gray-700' => !request()->routeIs('shop.*'),
                 ])>
                     Shop
+                </a>
+            @endif
+            @if (Auth::user()?->role === 'admin')
+                <a href="{{ route('admin.shop-applications.index') }}" @class([
+                    'ss-nav-link mt-1 block rounded-xl px-4 py-3 text-sm font-semibold',
+                    'is-active' => request()->routeIs('admin.shop-applications.*'),
+                    'text-gray-700' => !request()->routeIs('admin.shop-applications.*'),
+                ])>
+                    Shop Applications
                 </a>
             @endif
         @else

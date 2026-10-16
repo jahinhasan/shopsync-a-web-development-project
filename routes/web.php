@@ -13,6 +13,7 @@ use App\Http\Controllers\Owner\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\ShopApplicationController;
+use App\Http\Controllers\Admin\ShopApplicationController as AdminShopApplicationController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -140,12 +141,51 @@ Route::middleware('auth')->group(function () {
         ->group(function () {
             Route::resource('categories', CategoryController::class)
                 ->except('show');
+            
+                Route::get('/shop-applications', [
+    AdminShopApplicationController::class,
+    'index',
+])->name('shop-applications.index');
+
+Route::get('/shop-applications/{application}', [
+    AdminShopApplicationController::class,
+    'show',
+])->name('shop-applications.show');
+
+Route::patch('/shop-applications/{application}/approve', [
+    AdminShopApplicationController::class,
+    'approve',
+])->name('shop-applications.approve');
+
+Route::patch('/shop-applications/{application}/request-information', [
+    AdminShopApplicationController::class,
+    'requestInformation',
+])->name('shop-applications.request-information');
+
+Route::patch('/shop-applications/{application}/reject', [
+    AdminShopApplicationController::class,
+    'reject',
+])->name('shop-applications.reject');
+
+Route::get('/shop-applications/{application}/documents/{document}', [
+    AdminShopApplicationController::class,
+    'document',
+])->whereIn('document', ['identity-photo', 'identity-document'])
+  ->name('shop-applications.documents');
+
+Route::get('/shop-applications/{application}/media/{mediaId}', [
+    AdminShopApplicationController::class,
+    'media',
+])->whereNumber('mediaId')
+  ->name('shop-applications.media');                
         });
 
     Route::get('/admin/reports', [
         \App\Http\Controllers\ReportsController::class,
         'admin',
     ])->middleware('role:admin')->name('admin.reports');
+
+    
 });
 
 require __DIR__ . '/auth.php';

@@ -1,11 +1,18 @@
 @php
     $lockUser = auth()->user();
 
-    $shopLockApplication = $lockUser && $lockUser->role === 'business_owner' ? $lockUser->shopApplication : null;
+    $shopLockApplication = $lockUser
+        && $lockUser->role === 'business_owner'
+            ? $lockUser->shopApplication
+            : null;
 
-    $showShopApplicationLock = $shopLockApplication && $shopLockApplication->status !== 'approved';
+    $showShopApplicationLock = $shopLockApplication
+        && !in_array(
+            $shopLockApplication->status,
+            ['approved', 'needs_information'],
+            true
+        );
 @endphp
-
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
