@@ -6,7 +6,7 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-
+use App\Models\OrderIdem;
 class StorefrontController extends Controller
 {
     public function index(Request $request): View
@@ -50,12 +50,50 @@ $productsQuery = Product::query()
         return view('shop.index', compact('products', 'categories', 'search', 'categorySlug'));
     }
 
-    public function show(Product $product): View
-    {
-       abort_unless($product->isAvailableToCustomers(), 404);
+public function show(Request $request, Product $product): View
+{
+    abort_unless($product->isAvailableToCustomers(), 404);
 
-        $product->load(['category', 'owner']);
+    $product->load(['category', 'owner']);
 
-        return view('shop.show', compact('product'));
+    $reviews = $product->reviews()
+        ->with('user')
+        ->latest()
+        ->paginate(8);
+
+    $ratingQuery = $product->reviews()->whereNotNull('rating');
+
+    $averageRating = (float) ($ratingQuery->avg('rating') ?? 0);
+    $ratingCount = (int) $ratingQuery->count();
+
+    $customer = $request->user();
+    $userReview = null;
+    $hasPurchased = false;
+
+    if ($customer?->isCustomer()) {
+        $userReview = $product->reviews()
+            ->where('user_id', $customer->id)
+            ->first();
+
+        $excluded = ['cancelled', 'canceled', 'refunded'];
+
+        $hasPurchased = OrderIdem::query()
+            ->where('product_id', $product->id)
+            ->whereNotIn('status', $excluded)
+            ->whereHas('order', function ($query) use ($customer, $excluded) {
+                $query->where('user_id', $customer->id)
+                    ->whereNotIn('status', $excluded);
+            })
+            ->exists();
     }
+
+    return view('shop.show', compact(
+        'product',
+        'reviews',
+        'averageRating',
+        'ratingCount',
+        'hasPurchased',
+        'userReview'
+    ));
+}
 }

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
@@ -18,6 +19,14 @@ class Product extends Model
 public function scopeAvailableToCustomers(Builder $query): Builder
 {
     return $query
+     ->withAvg([
+            'reviews as rating_average' => fn (Builder $reviews) =>
+                $reviews->whereNotNull('rating'),
+        ], 'rating')
+        ->withCount([
+            'reviews as rating_count' => fn (Builder $reviews) =>
+                $reviews->whereNotNull('rating'),
+        ])
         ->where('products.is_active', true)
         ->where('products.admin_status', 'active')
         ->where('products.stock', '>', 0)
@@ -39,6 +48,9 @@ public function isAvailableToCustomers(): bool
         && $shop?->status === 'approved'
         && $shop?->shop_status === 'active';
 }
-
+public function reviews(): HasMany
+{
+    return $this->hasMany(ProductReview::class);
+}
 
     }

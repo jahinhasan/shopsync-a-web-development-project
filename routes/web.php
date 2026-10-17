@@ -36,20 +36,24 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/shop/{product}', [StorefrontController::class, 'show'])
         ->name('shop.show');
-        Route::get('/notifications', [
-    UserNotificationController::class,
-    'index',
-])->name('notifications.index');
+    Route::get('/notifications', [
+        UserNotificationController::class,
+        'index',
+    ])->name('notifications.index');
+    Route::post('/shop/{product}/reviews', [
+        \App\Http\Controllers\ProductReviewController::class,
+        'store',
+    ])->middleware('role:customer')->name('shop.reviews.store');
 
-Route::patch('/notifications/{notificationId}/read', [
-    UserNotificationController::class,
-    'markAsRead',
-])->name('notifications.read');
+    Route::patch('/notifications/{notificationId}/read', [
+        UserNotificationController::class,
+        'markAsRead',
+    ])->name('notifications.read');
 
-Route::patch('/notifications/read-all', [
-    UserNotificationController::class,
-    'markAllAsRead',
-])->name('notifications.read-all');
+    Route::patch('/notifications/read-all', [
+        UserNotificationController::class,
+        'markAllAsRead',
+    ])->name('notifications.read-all');
 
     // Cart
     Route::get('/cart', [CartController::class, 'index'])
@@ -95,6 +99,7 @@ Route::patch('/notifications/read-all', [
 
     Route::delete('/profile', [ProfileController::class, 'destroy'])
         ->name('profile.destroy');
+
 
     // Business owner routes
     Route::middleware(['role:business_owner',  'shop.approved',])
