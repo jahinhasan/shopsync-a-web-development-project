@@ -27,7 +27,9 @@ $productsQuery = Product::query()
                     })
                     ->orWhereHas('owner', function ($ownerQuery) use ($search) {
                         $ownerQuery->where('name', 'like', '%' . $search . '%');
-                    });
+                    })->orWhereHas('owner.shopApplication', function ($applicationQuery) use ($search) {
+    $applicationQuery->where('shop_name', 'like', '%' . $search . '%');
+});
             });
         }
 

@@ -9,11 +9,27 @@
                     Welcome, {{ auth()->user()->name }}
                 </h1>
             </div>
+<div class="flex flex-wrap items-center justify-end gap-2">
+    <a href="{{ route('shop.index') }}"
+       class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+        Marketplace
+    </a>
 
-            <a href="{{ route('orders.index') }}"
-                class="ss-action-button inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700">
-                My orders <span aria-hidden="true">→</span>
-            </a>
+    <a href="{{ route('cart.index') }}"
+       class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
+        Shopping Cart
+    </a>
+
+    <a href="{{ \Illuminate\Support\Facades\Route::has('orders.track') ? route('orders.track') : route('orders.index') }}"
+       class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
+        Track Order
+    </a>
+
+    <a href="{{ route('orders.index') }}"
+       class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
+        My Orders
+    </a>
+</div>
         </div>
     </x-slot>
 
@@ -34,8 +50,7 @@
 
             {{-- Search and quick links --}}
             <section
-                class="rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700 p-6 text-white shadow-lg sm:p-9">
-                <p class="text-sm font-semibold text-indigo-200">
+class="ss-dashboard-hero relative rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700 p-6 text-white shadow-lg sm:p-9"                <p class="text-sm font-semibold text-indigo-200">
                     YOUR NEXT GREAT FIND STARTS HERE
                 </p>
 
@@ -153,7 +168,7 @@
             </section>
 
             {{-- Top shops based on active product count --}}
-            <section>
+            <section id="marketplace-sellers" class="scroll-mt-24">
                 <div class="mb-5">
                     <p class="text-xs font-bold uppercase tracking-widest text-indigo-600">Marketplace sellers</p>
                     <h2 class="mt-1 text-2xl font-bold text-gray-900">Shops to explore</h2>
@@ -161,19 +176,67 @@
                         Sellers ranked by the number of currently available products.
                     </p>
                 </div>
+                <form action="{{ route('customer.dashboard') }}#marketplace-sellers"
+      method="GET"
+      class="mb-5 grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px_auto_auto] sm:items-end">
+
+    <div>
+        <label for="seller-search"
+               class="mb-2 block text-sm font-semibold text-gray-800">
+            Search sellers
+        </label>
+
+        <input id="seller-search"
+               type="search"
+               name="seller_q"
+               value="{{ $sellerSearch }}"
+               placeholder="Enter shop name..."
+               class="w-full rounded-xl border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+    </div>
+
+    <div>
+        <label for="seller-type"
+               class="mb-2 block text-sm font-semibold text-gray-800">
+            Filter by shop type
+        </label>
+
+        <select id="seller-type"
+                name="seller_type"
+                class="w-full rounded-xl border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="">All shop types</option>
+
+            @foreach ($shopTypes as $type)
+                <option value="{{ $type }}"
+                        @selected($sellerType === $type)>
+                    {{ $type }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    <button type="submit"
+            class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
+        Search & Filter
+    </button>
+
+    <a href="{{ route('customer.dashboard') }}#marketplace-sellers"
+       class="inline-flex justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+        Reset
+    </a>
+</form>
 
                 @if ($topShops->isNotEmpty())
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach ($topShops as $shop)
-                            <a href="{{ route('shop.index', ['q' => $shop->name]) }}"
+                            <a href="{{ route('shop.index', ['q' => $shop->shop_name]) }}"
                                 class="ss-motion-card flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 hover:border-indigo-300"
                                 data-reveal>
                                 <span
                                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-lg font-bold text-white">
-                                    {{ strtoupper(mb_substr($shop->name, 0, 1)) }}
+                                    {{ strtoupper(mb_substr($shop->shop_name, 0, 1)) }}
                                 </span>
                                 <span class="min-w-0 flex-1">
-                                    <span class="block truncate font-bold text-gray-900">{{ $shop->name }}</span>
+                                    <span class="block truncate font-bold text-gray-900">{{ $shop->shop_name }}</span>
                                     <span class="mt-1 block text-sm text-gray-500">
                                         {{ $shop->product_count }} available
                                         {{ (int) $shop->product_count === 1 ? 'product' : 'products' }}

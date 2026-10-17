@@ -46,22 +46,37 @@
                                 Shop
                             </a>
                         @endif
-@if (Auth::user()?->role === 'admin')
-    <a href="{{ route('admin.moderation.index') }}"
-       class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
-        Moderation Center
+                        @if (in_array(Auth::user()?->role, ['customer', 'business_owner'], true))
+                            <a href="{{ route('chat.index') }}" @class([
+                                'ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold',
+                                'is-active' => request()->routeIs('chat.*'),
+                                'text-gray-600 hover:text-indigo-700' => !request()->routeIs('chat.*'),
+                            ])>
+                                Messages
+                            </a>
+                        @endif
+                        @if (Auth::user()?->role === 'admin')
+                            <a href="{{ route('admin.moderation.index') }}"
+                                class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
+                                Moderation Center
+                            </a>
+                        @endif
+                        @if ($user?->role === 'customer')
+    <a href="{{ route('customer.dashboard') }}#marketplace-sellers"
+       class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-indigo-50 hover:text-indigo-700">
+        Marketplace Sellers
     </a>
 @endif
                         <a href="{{ route('notifications.index') }}"
-   class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
-    Notifications
+                            class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
+                            Notifications
 
-    @if (Auth::user()->unreadNotifications()->exists())
-        <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-            New
-        </span>
-    @endif
-</a>
+                            @if (Auth::user()->unreadNotifications()->exists())
+                                <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
+                                    New
+                                </span>
+                            @endif
+                        </a>
                         @if (Auth::user()?->role === 'admin')
                             <a href="{{ route('admin.shop-applications.index') }}" @class([
                                 'ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold',
@@ -181,22 +196,37 @@
                     Shop
                 </a>
             @endif
-@if (Auth::user()?->role === 'admin')
-    <a href="{{ route('admin.moderation.index') }}"
-       class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
-        Moderation Center
+            @if (in_array(Auth::user()?->role, ['customer', 'business_owner'], true))
+                <a href="{{ route('chat.index') }}" @class([
+                    'ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold',
+                    'is-active' => request()->routeIs('chat.*'),
+                    'text-gray-600 hover:text-indigo-700' => !request()->routeIs('chat.*'),
+                ])>
+                    Messages
+                </a>
+            @endif
+            @if (Auth::user()?->role === 'admin')
+                <a href="{{ route('admin.moderation.index') }}"
+                    class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
+                    Moderation Center
+                </a>
+            @endif
+            @if ($user?->role === 'customer')
+    <a href="{{ route('customer.dashboard') }}#marketplace-sellers"
+       class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 transition hover:bg-indigo-50 hover:text-indigo-700">
+        Marketplace Sellers
     </a>
 @endif
-<a href="{{ route('notifications.index') }}"
-   class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
-    Notifications
+            <a href="{{ route('notifications.index') }}"
+                class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
+                Notifications
 
-    @if (Auth::user()->unreadNotifications()->exists())
-        <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-            New
-        </span>
-    @endif
-</a>
+                @if (Auth::user()->unreadNotifications()->exists())
+                    <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
+                        New
+                    </span>
+                @endif
+            </a>
             @if (Auth::user()?->role === 'admin')
                 <a href="{{ route('admin.shop-applications.index') }}" @class([
                     'ss-nav-link mt-1 block rounded-xl px-4 py-3 text-sm font-semibold',

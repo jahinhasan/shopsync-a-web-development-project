@@ -151,18 +151,21 @@
 @endif
 
 
-<body class="font-sans antialiased">
-    <div class="min-h-screen bg-gray-100">
+<body class="font-sans antialiased {{ request()->routeIs('customer.dashboard') ? 'customer-dashboard-page' : '' }}">    <div class="min-h-screen bg-gray-100">
         @include('layouts.navigation')
 
         <!-- Page Heading -->
-        @isset($header)
-            <header class="bg-white shadow">
-                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                    {{ $header }}
-                </div>
-            </header>
-        @endisset
+  @isset($header)
+    <header @class([
+        'bg-white shadow' => !request()->routeIs('customer.dashboard'),
+        'sticky top-16 z-40 border-b border-gray-200/80 bg-white/95 shadow-sm backdrop-blur-xl'
+            => request()->routeIs('customer.dashboard'),
+    ])>
+        <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+            {{ $header }}
+        </div>
+    </header>
+@endisset
 
         <!-- Page Content -->
         <main>

@@ -1,4 +1,3 @@
-
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -236,6 +235,26 @@ Route::middleware('auth')->group(function () {
         \App\Http\Controllers\ReportsController::class,
         'admin',
     ])->middleware('role:admin')->name('admin.reports');
+
+    Route::post('/shop/{product}/chat', [
+    \App\Http\Controllers\ChatController::class,
+    'start',
+])->middleware('role:customer')->name('chat.start');
+
+Route::get('/chat', [
+    \App\Http\Controllers\ChatController::class,
+    'index',
+])->name('chat.index');
+
+Route::get('/chat/{conversation}', [
+    \App\Http\Controllers\ChatController::class,
+    'show',
+])->name('chat.show');
+
+Route::post('/chat/{conversation}/messages', [
+    \App\Http\Controllers\ChatController::class,
+    'storeMessage',
+])->name('chat.messages.store');
 });
 
 require __DIR__ . '/auth.php';

@@ -7,10 +7,11 @@ use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $availableProducts = fn($query) => $query
             ->availableToCustomers();
@@ -46,32 +47,83 @@ class DashboardController extends Controller
             ->filter(fn($category) => $category->products->isNotEmpty())
             ->values();
 
-        $topShops = DB::table('products')
-            ->join('users', 'users.id', '=', 'products.user_id')
-            ->join('shop_applications', 'shop_applications.user_id', '=', 'users.id')
-            ->where('users.role', 'business_owner')
-            ->where('shop_applications.status', 'approved')
-            ->where('shop_applications.shop_status', 'active')
-            ->where('products.is_active', true)
-            ->where('products.admin_status', 'active')
-            ->whereNull('products.deleted_at')
-            ->where('products.stock', '>', 0)
-            ->select(
-                'users.id',
-                'users.name',
-                DB::raw('COUNT(products.id) as product_count')
-            )
-            ->groupBy('users.id', 'users.name')
-            ->orderByDesc('product_count')
-            ->orderBy('users.name')
-            ->limit(6)
-            ->get();
+$sellerSearch = mb_substr(
+    trim((string) $request->query('seller_q', '')),
+    0,
+    100
+);
+
+$sellerType = trim((string) $request->query('seller_type', ''));
+
+$shopTypes = DB::table('shop_applications as sa')
+    ->join('users as u', 'u.id', '=', 'sa.user_id')
+    ->where('u.role', 'business_owner')
+    ->where('sa.status', 'approved')
+    ->where('sa.shop_status', 'active')
+    ->whereExists(function ($query) {
+        $query->selectRaw('1')
+            ->from('products as p')
+            ->whereColumn('p.user_id', 'u.id')
+            ->where('p.is_active', true)
+            ->where('p.admin_status', 'active')
+            ->where('p.stock', '>', 0)
+            ->whereNull('p.deleted_at');
+    })
+    ->whereNotNull('sa.shop_type')
+    ->where('sa.shop_type', '!=', '')
+    ->distinct()
+    ->orderBy('sa.shop_type')
+    ->pluck('sa.shop_type');
+
+$shopsQuery = DB::table('shop_applications as sa')
+    ->join('users as u', 'u.id', '=', 'sa.user_id')
+    ->join('products as p', 'p.user_id', '=', 'u.id')
+    ->where('u.role', 'business_owner')
+    ->where('sa.status', 'approved')
+    ->where('sa.shop_status', 'active')
+    ->where('p.is_active', true)
+    ->where('p.admin_status', 'active')
+    ->where('p.stock', '>', 0)
+    ->whereNull('p.deleted_at')
+    ->select(
+        'u.id',
+        'sa.shop_name',
+        'sa.slug',
+        'sa.shop_type',
+        DB::raw('COUNT(DISTINCT p.id) as product_count')
+    )
+    ->groupBy(
+        'u.id',
+        'sa.shop_name',
+        'sa.slug',
+        'sa.shop_type'
+    );
+
+if ($sellerSearch !== '') {
+    $shopsQuery->where(
+        'sa.shop_name',
+        'like',
+        '%' . $sellerSearch . '%'
+    );
+}
+
+if ($sellerType !== '') {
+    $shopsQuery->where('sa.shop_type', $sellerType);
+}
+
+$topShops = $shopsQuery
+    ->orderBy('sa.shop_name')
+    ->paginate(12)
+    ->withQueryString();
 
         return view('dashboards.customer', compact(
             'featuredProducts',
             'newArrivals',
             'categories',
-            'topShops'
+            'topShops',
+            'sellerSearch',
+'sellerType',
+'shopTypes'
         ));
     }
 }

@@ -101,6 +101,31 @@
                         </ul>
                     </div>
                 @endif
+                @auth
+    @if (auth()->user()->isCustomer()
+        && (int) auth()->id() !== (int) $product->user_id)
+        <form method="POST"
+              action="{{ route('chat.start', $product) }}"
+              class="mt-3">
+            @csrf
+
+            <button type="submit"
+                    class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-6 py-3 font-semibold text-indigo-700 transition hover:border-indigo-400 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto">
+                <svg aria-hidden="true"
+                     class="h-5 w-5"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8">
+                    <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"/>
+                </svg>
+                Chat with seller
+            </button>
+        </form>
+    @endif
+@endauth
 
                 <form method="POST" action="{{ route('cart.add', $product) }}" class="mt-7">
                     @csrf
