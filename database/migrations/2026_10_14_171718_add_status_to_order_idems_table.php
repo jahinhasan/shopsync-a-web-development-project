@@ -15,8 +15,9 @@ return new class extends Migration
 
         DB::statement("
             UPDATE order_idems
-            INNER JOIN orders ON orders.id = order_idems.order_id
-            SET order_idems.status = orders.status
+            SET status = (
+                SELECT orders.status FROM orders WHERE orders.id = order_idems.order_id
+            )
         ");
     }
 

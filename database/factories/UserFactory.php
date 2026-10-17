@@ -42,4 +42,24 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Indicate that the user is a customer.
+     */
+    public function customer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'customer',
+        ]);
+    }
+
+    /**
+     * Indicate that the user is a business owner.
+     */
+    public function businessOwner(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'business_owner',
+        ]);
+    }
 }

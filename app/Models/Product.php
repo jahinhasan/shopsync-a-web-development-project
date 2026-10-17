@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
+    use HasFactory;
     use SoftDeletes;
     protected $fillable = ['user_id','category_id','name','slug','description','price','stock','image_path','is_active'];
     protected function casts(): array{ return ['price'=>'decimal:2','is_active'=>'boolean'];}

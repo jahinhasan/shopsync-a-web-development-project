@@ -8,6 +8,16 @@
       class="space-y-4 rounded-lg border bg-white p-5">
     @csrf
 
+    @if ($errors->any())
+        <div role="alert" class="rounded-xl bg-red-50 p-3 text-sm text-red-800">
+            <ul class="list-inside list-disc">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="space-y-4">
          <h2 class="text-lg font-bold text-gray-900">Payment method</h2>
 

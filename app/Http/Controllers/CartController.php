@@ -145,7 +145,22 @@ class CartController extends Controller
         }
 
 
-        $order = DB::transaction(function () use ($cart, $validated) {
+        $voucherCode = $validated['voucher_code'] ?? null;
+
+        // Validate the voucher before anything is written so an invalid code
+        // cannot leave a placed order behind.
+        if (filled($voucherCode)) {
+            $cartProducts = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
+
+            app(\App\Services\CustomerRewardService::class)->previewVoucherForCart(
+                $request->user(),
+                $voucherCode,
+                $cart,
+                $cartProducts
+            );
+        }
+
+        $order = DB::transaction(function () use ($cart, $validated, $voucherCode) {
             $products = Product::whereIn('id', array_keys($cart))->lockForUpdate()->get()->keyBy('id');
 
 
@@ -228,18 +243,19 @@ class CartController extends Controller
                     'reason' => 'Stock reduced for order ' . $order->order_number,
                 ]);
             }
+            if (filled($voucherCode)) {
+                app(\App\Services\CustomerRewardService::class)->applyVoucherToOrder(
+                    Auth::user(),
+                    $order,
+                    $voucherCode
+                );
+            }
+
             return $order;
         });
-        if (filled($validated['voucher_code'] ?? null)) {
-    app(\App\Services\CustomerRewardService::class)->applyVoucherToOrder(
-        $request->user(),
-        $order,
-        $validated['voucher_code']
-    );
-}
 
         $request->session()->forget('cart');
-        return redirect()->route('cart.index')->with('success', 'Order placed successfully. Your order number is: ' . $order->order_number);
+        return redirect()->route('orders.show', $order)->with('success', 'Order placed successfully. Your order number is: ' . $order->order_number);
     }
 
     private function purgeUnavailableCartProducts(Request $request): bool

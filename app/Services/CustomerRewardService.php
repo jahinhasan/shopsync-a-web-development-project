@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderIdem;
 use App\Models\User;
 use App\Models\Voucher;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
@@ -123,6 +124,36 @@ class CustomerRewardService
         });
     }
 
+    /**
+     * Validate a voucher against the cart and return the discount it would
+     * give, without creating or modifying any records.
+     *
+     * @param  array<int|string, mixed>  $cart
+     * @param  Collection<int, Product>  $products
+     */
+    public function previewVoucherForCart(
+        User $user,
+        string $code,
+        array $cart,
+        Collection $products
+    ): float {
+        $voucher = $this->redeemableCustomerVoucher($user, $code)->voucher;
+
+        $lines = collect($cart)->map(function ($quantity, $productId) use ($products) {
+            $product = $products->get($productId);
+
+            return [
+                'product_id' => (int) $productId,
+                'reward_category_id' => $product?->category_id,
+                'subtotal' => (float) ($product?->price ?? 0) * (int) $quantity,
+            ];
+        })->values();
+
+        $eligibleLines = $this->eligibleLines($voucher, $lines);
+
+        return $this->discountFromLines($voucher, $eligibleLines)['discount'];
+    }
+
     public function applyVoucherToOrder(
         User $user,
         Order $order,
@@ -141,25 +172,11 @@ class CustomerRewardService
                 ]);
             }
 
-            $customerVoucher = CustomerVoucher::query()
-                ->where('user_id', $user->id)
-                ->where('code', strtoupper(trim($code)))
-                ->where('status', 'available')
-                ->lockForUpdate()
-                ->with('voucher')
-                ->first();
-
-            if (
-                ! $customerVoucher
-                || ! $customerVoucher->voucher
-                || ! $customerVoucher->voucher->is_active
-                || ! $customerVoucher->expires_at
-                || $customerVoucher->expires_at->isPast()
-            ) {
-                throw ValidationException::withMessages([
-                    'voucher_code' => 'This voucher is invalid, expired, or already used.',
-                ]);
-            }
+            $customerVoucher = $this->redeemableCustomerVoucher(
+                $user,
+                $code,
+                lockForUpdate: true
+            );
 
             $voucher = $customerVoucher->voucher;
 
@@ -169,55 +186,24 @@ class CustomerRewardService
                 ->lockForUpdate()
                 ->get();
 
-            $eligibleItems = $items->filter(function (OrderIdem $item) use ($voucher) {
-                if ($voucher->product_id) {
-                    return (int) $item->product_id === (int) $voucher->product_id;
-                }
+            $lines = $items->map(fn (OrderIdem $item) => [
+                'item' => $item,
+                'product_id' => (int) $item->product_id,
+                'reward_category_id' => $item->reward_category_id,
+                'subtotal' => (float) $item->subtotal,
+            ])->values();
 
-                if ($voucher->category_id) {
-                    return (int) $item->reward_category_id === (int) $voucher->category_id;
-                }
+            $eligibleLines = $this->eligibleLines($voucher, $lines);
 
-                return false;
-            })->values();
-
-            $eligibleSubtotal = round(
-                (float) $eligibleItems->sum(fn ($item) => (float) $item->subtotal),
-                2
-            );
-
-            if (
-                $eligibleItems->isEmpty()
-                || $eligibleSubtotal < (float) $voucher->min_order_total
-            ) {
-                throw ValidationException::withMessages([
-                    'voucher_code' => 'This voucher does not match the products or minimum order amount.',
-                ]);
-            }
-
-            $rawDiscount = match ($voucher->discount_type) {
-                'percent' => $eligibleSubtotal * ((float) $voucher->discount_value / 100),
-                'fixed' => (float) $voucher->discount_value,
-                default => 0,
-            };
-
-            $discount = round(min(
-                $rawDiscount,
-                (float) $voucher->max_discount,
-                $eligibleSubtotal
-            ), 2);
-
-            if ($discount <= 0) {
-                throw ValidationException::withMessages([
-                    'voucher_code' => 'This voucher cannot discount the selected items.',
-                ]);
-            }
+            ['discount' => $discount, 'eligible_subtotal' => $eligibleSubtotal] =
+                $this->discountFromLines($voucher, $eligibleLines);
 
             $remaining = $discount;
-            $lastIndex = $eligibleItems->count() - 1;
+            $lastIndex = $eligibleLines->count() - 1;
 
-            foreach ($eligibleItems as $index => $item) {
-                $lineSubtotal = (float) $item->subtotal;
+            foreach ($eligibleLines as $index => $line) {
+                $item = $line['item'];
+                $lineSubtotal = (float) $line['subtotal'];
 
                 $allocated = $index === $lastIndex
                     ? $remaining
@@ -246,6 +232,108 @@ class CustomerRewardService
 
             return $discount;
         });
+    }
+
+    /**
+     * Fetch the customer's available voucher for a code or fail validation.
+     */
+    private function redeemableCustomerVoucher(
+        User $user,
+        string $code,
+        bool $lockForUpdate = false
+    ): CustomerVoucher {
+        $query = CustomerVoucher::query()
+            ->where('user_id', $user->id)
+            ->where('code', strtoupper(trim($code)))
+            ->where('status', 'available')
+            ->with('voucher');
+
+        if ($lockForUpdate) {
+            $query->lockForUpdate();
+        }
+
+        $customerVoucher = $query->first();
+
+        if (
+            ! $customerVoucher
+            || ! $customerVoucher->voucher
+            || ! $customerVoucher->voucher->is_active
+            || ! $customerVoucher->expires_at
+            || $customerVoucher->expires_at->isPast()
+        ) {
+            throw ValidationException::withMessages([
+                'voucher_code' => 'This voucher is invalid, expired, or already used.',
+            ]);
+        }
+
+        return $customerVoucher;
+    }
+
+    /**
+     * Keep only the lines the voucher applies to.
+     *
+     * @param  Collection<int, array<string, mixed>>  $lines
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function eligibleLines(Voucher $voucher, Collection $lines): Collection
+    {
+        return $lines->filter(function (array $line) use ($voucher) {
+            if ($voucher->product_id) {
+                return (int) $line['product_id'] === (int) $voucher->product_id;
+            }
+
+            if ($voucher->category_id) {
+                return (int) $line['reward_category_id'] === (int) $voucher->category_id;
+            }
+
+            return false;
+        })->values();
+    }
+
+    /**
+     * Calculate the voucher discount for the eligible lines, capped by the
+     * voucher limits and the eligible subtotal.
+     *
+     * @param  Collection<int, array<string, mixed>>  $eligibleLines
+     * @return array{discount: float, eligible_subtotal: float}
+     */
+    private function discountFromLines(
+        Voucher $voucher,
+        Collection $eligibleLines
+    ): array {
+        $eligibleSubtotal = round(
+            (float) $eligibleLines->sum(fn (array $line) => (float) $line['subtotal']),
+            2
+        );
+
+        if (
+            $eligibleLines->isEmpty()
+            || $eligibleSubtotal < (float) $voucher->min_order_total
+        ) {
+            throw ValidationException::withMessages([
+                'voucher_code' => 'This voucher does not match the products or minimum order amount.',
+            ]);
+        }
+
+        $rawDiscount = match ($voucher->discount_type) {
+            'percent' => $eligibleSubtotal * ((float) $voucher->discount_value / 100),
+            'fixed' => (float) $voucher->discount_value,
+            default => 0,
+        };
+
+        $discount = round(min(
+            $rawDiscount,
+            (float) $voucher->max_discount,
+            $eligibleSubtotal
+        ), 2);
+
+        if ($discount <= 0) {
+            throw ValidationException::withMessages([
+                'voucher_code' => 'This voucher cannot discount the selected items.',
+            ]);
+        }
+
+        return ['discount' => $discount, 'eligible_subtotal' => $eligibleSubtotal];
     }
 
     public function makeCode(): string

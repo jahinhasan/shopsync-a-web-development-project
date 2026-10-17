@@ -54,7 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/shop/{product}/reviews', [
         \App\Http\Controllers\ProductReviewController::class,
         'store',
-    ])->middleware('role:customer')->name('shop.reviews.store');
+    ])->middleware(['role:customer', 'throttle:10,1'])->name('shop.reviews.store');
 
     Route::patch('/notifications/{notificationId}/read', [
         UserNotificationController::class,
@@ -270,7 +270,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/chat/{conversation}/messages', [
         \App\Http\Controllers\ChatController::class,
         'storeMessage',
-    ])->name('chat.messages.store');
+    ])->middleware('throttle:30,1')->name('chat.messages.store');
 });
 
 require __DIR__ . '/auth.php';

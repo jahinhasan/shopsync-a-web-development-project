@@ -4,6 +4,14 @@
     </x-slot>
 
     <div class="mx-auto max-w-4xl space-y-6 px-4 py-8">
+        @if (session('success'))
+            <p class="text-green-700">{{ session('success') }}</p>
+        @endif
+
+        @if (session('error'))
+            <p class="text-red-600">{{ session('error') }}</p>
+        @endif
+
         <div class="rounded-lg border bg-white p-5">
             <h3 class="font-semibold">
                 Order: {{ $order->order_number }}
