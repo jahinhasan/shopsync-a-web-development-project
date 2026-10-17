@@ -50,6 +50,10 @@
                     <p class="mt-3 font-bold text-gray-900">
                         ৳{{ number_format((float) $product->price, 2) }}
                     </p>
+                    <p class="mt-2 text-xs font-semibold text-emerald-700">
+    +{{ (int) $product->reward_points }} reward points
+    <span class="font-normal text-gray-500">after eligible delivery</span>
+</p>
 
                     <a href="{{ route('shop.show', $product) }}"
                         class="ss-action-button mt-3 flex w-full items-center justify-center rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 sm:text-sm">

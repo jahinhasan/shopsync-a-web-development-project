@@ -1,4 +1,3 @@
-
 <x-app-layout>
     <x-slot name="header">
         <h2 class="text-xl font-semibold">Order Details</h2>
@@ -59,8 +58,42 @@
             <p class="whitespace-pre-line">{{ $order->shipping_address }}</p>
         </div>
 
-        <a href="{{ route('orders.index') }}"
-           class="text-indigo-600 hover:underline">
+
+        <div class="mt-4 rounded-2xl border border-gray-200 bg-white p-5">
+            <h3 class="font-bold text-gray-900">Payment information</h3>
+
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                    <p class="text-xs text-gray-500">Payment method</p>
+                    <p class="mt-1 font-semibold text-gray-900">
+                        {{ strtoupper($order->payment_method) }}
+                    </p>
+                </div>
+
+                <div>
+                    <p class="text-xs text-gray-500">Overall payment status</p>
+                    <p
+                        class="mt-1 font-semibold
+                {{ $order->payment_status === 'paid' ? 'text-emerald-700' : 'text-amber-700' }}">
+                        {{ ucfirst($order->payment_status) }}
+                    </p>
+                </div>
+            </div>
+
+            @if ($order->voucher_code)
+                <div class="mt-4 border-t border-gray-100 pt-4">
+                    <p class="text-xs text-gray-500">Voucher used</p>
+                    <p class="mt-1 font-mono font-semibold text-indigo-700">
+                        {{ $order->voucher_code }}
+                    </p>
+                    <p class="mt-1 text-sm text-emerald-700">
+                        ShopSync promotional discount:
+                        ৳{{ number_format((float) $order->voucher_discount_total, 2) }}
+                    </p>
+                </div>
+            @endif
+        </div>
+        <a href="{{ route('orders.index') }}" class="text-indigo-600 hover:underline">
             Back to My Orders
         </a>
     </div>

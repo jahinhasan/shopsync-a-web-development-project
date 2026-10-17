@@ -15,27 +15,27 @@ use App\Models\InventoryTransaction;
 
 class CartController extends Controller
 {
-public function index(Request $request): View
-{
-    $removed = $this->purgeUnavailableCartProducts($request);
+    public function index(Request $request): View
+    {
+        $removed = $this->purgeUnavailableCartProducts($request);
 
-    $cart = $request->session()->get('cart', []);
+        $cart = $request->session()->get('cart', []);
 
-    $products = Product::query()
-        ->availableToCustomers()
-        ->whereIn('id', array_keys($cart))
-        ->get()
-        ->keyBy('id');
+        $products = Product::query()
+            ->availableToCustomers()
+            ->whereIn('id', array_keys($cart))
+            ->get()
+            ->keyBy('id');
 
-    if ($removed) {
-        $request->session()->flash(
-            'error',
-            'Unavailable products were removed from your cart.'
-        );
+        if ($removed) {
+            $request->session()->flash(
+                'error',
+                'Unavailable products were removed from your cart.'
+            );
+        }
+
+        return view('cart.index', compact('cart', 'products'));
     }
-
-    return view('cart.index', compact('cart', 'products'));
-}
 
     public function add(Request $request, Product $product): RedirectResponse
     {
@@ -121,7 +121,15 @@ public function index(Request $request): View
         $validated = $request->validate([
             'customer_name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
-            'shipping_address' => ['required', 'string', 'max:2000']
+            'shipping_address' => ['required', 'string', 'max:2000'],
+            'payment_method' => ['required', 'in:cod,bkash,nagad'],
+            'payment_reference' => [
+                'nullable',
+                'required_if:payment_method,bkash,nagad',
+                'string',
+                'max:120',
+            ],
+            'voucher_code' => ['nullable', 'string', 'max:40']
         ]);
 
         $cart = $request->session()->get('cart', []);
@@ -135,6 +143,7 @@ public function index(Request $request): View
                 return redirect()->route('cart.index')->with('error', 'Invalid quantity in cart');
             }
         }
+
 
         $order = DB::transaction(function () use ($cart, $validated) {
             $products = Product::whereIn('id', array_keys($cart))->lockForUpdate()->get()->keyBy('id');
@@ -154,6 +163,17 @@ public function index(Request $request): View
 
                 $total += (float) $product->price * $quantity;
             }
+            $paymentMethod = $validated['payment_method'];
+
+            if (
+                in_array($paymentMethod, ['bkash', 'nagad'], true)
+                && blank(config("shopsync.payment_numbers.{$paymentMethod}"))
+            ) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'payment_method' => 'This payment method is not configured yet.',
+                ]);
+            }
+
 
             $order = Order::Create([
                 'user_id' => Auth::id(),
@@ -163,10 +183,21 @@ public function index(Request $request): View
                 'total' => $total,
                 'status' => 'pending',
                 'order_number' => 'ORD-' . Str::upper(str::random(12)),
-                'payment_status' => 'unpaid',
-                'payment_method' => 'cod',
+
+
+                'payment_method' => $paymentMethod,
+                'payment_status' => 'pending',
+                'payment_reference' => in_array($paymentMethod, ['bkash', 'nagad'], true)
+                    ? trim($validated['payment_reference'])
+                    : null,
+                'payment_submitted_at' => in_array($paymentMethod, ['bkash', 'nagad'], true)
+                    ? now()
+                    : null,
+                'voucher_discount_total' => 0,
+                'voucher_code' => null,
 
             ]);
+            
             foreach ($cart as $id => $quantity) {
                 $product = $products->get($id);
                 OrderIdem::create([
@@ -184,6 +215,7 @@ public function index(Request $request): View
                 $product->decrement('stock', $quantity);
 
                 $quantityAfter = $quantityBefore - $quantity;
+                
 
                 InventoryTransaction::create([
                     'product_id' => $product->id,
@@ -198,6 +230,13 @@ public function index(Request $request): View
             }
             return $order;
         });
+        if (filled($validated['voucher_code'] ?? null)) {
+    app(\App\Services\CustomerRewardService::class)->applyVoucherToOrder(
+        $request->user(),
+        $order,
+        $validated['voucher_code']
+    );
+}
 
         $request->session()->forget('cart');
         return redirect()->route('cart.index')->with('success', 'Order placed successfully. Your order number is: ' . $order->order_number);

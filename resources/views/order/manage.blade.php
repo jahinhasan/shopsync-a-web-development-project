@@ -115,12 +115,63 @@
                                                 </option>
                                             @endforeach
                                         </select>
+                                        
 
                                         <button type="submit"
                                             class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700">
                                             Update Status
                                         </button>
                                     </form>
+                                    <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+    <p class="text-sm font-semibold text-gray-900">Payment verification</p>
+
+    <p class="mt-2 text-sm text-gray-600">
+        Order method:
+        <span class="font-semibold">{{ strtoupper($order->payment_method) }}</span>
+    </p>
+
+    <p class="mt-1 break-all text-sm text-gray-600">
+        Transaction reference:
+        <span class="font-mono font-semibold">
+            {{ $order->payment_reference ?: 'Not submitted (COD or pending)' }}
+        </span>
+    </p>
+
+    <p class="mt-1 text-sm text-gray-600">
+        Item payment status:
+        <span class="font-semibold">{{ ucfirst($item->payment_status ?? 'pending') }}</span>
+    </p>
+
+    @if (($item->payment_status ?? 'pending') !== 'paid')
+        <div class="mt-3 flex flex-wrap gap-2">
+            <form method="POST"
+                  action="{{ route('owner.orders.update-payment-status', [$order, $item]) }}">
+                @csrf
+                @method('PATCH')
+                <input type="hidden" name="payment_status" value="paid">
+
+                <button type="submit"
+                        class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                    Confirm payment
+                </button>
+            </form>
+
+            @if (in_array($order->payment_method, ['bkash', 'nagad'], true))
+                <form method="POST"
+                      action="{{ route('owner.orders.update-payment-status', [$order, $item]) }}">
+                    @csrf
+                    @method('PATCH')
+                    <input type="hidden" name="payment_status" value="failed">
+
+                    <button type="submit"
+                            class="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+                        Reject reference
+                    </button>
+                </form>
+            @endif
+        </div>
+    @endif
+</div>
                                 </div>
                             @endforeach
                         </div>

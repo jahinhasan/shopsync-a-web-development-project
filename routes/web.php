@@ -15,6 +15,7 @@ use App\Http\Controllers\ShopApplicationController;
 use App\Http\Controllers\Admin\ShopApplicationController as AdminShopApplicationController;
 use App\Http\Controllers\Admin\ModerationController;
 use App\Http\Controllers\UserNotificationController;
+use App\Http\Controllers\CustomerRewardController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -28,6 +29,17 @@ Route::middleware('auth')->group(function () {
         'business_owner' => redirect()->route('owner.dashboard'),
         default => redirect()->route('customer.dashboard'),
     })->middleware('verified')->name('dashboard');
+    Route::middleware('role:customer')->group(function () {
+        Route::get('/customer/rewards', [
+            CustomerRewardController::class,
+            'index',
+        ])->name('customer.rewards');
+
+        Route::post('/customer/rewards/vouchers', [
+            CustomerRewardController::class,
+            'buyVoucher',
+        ])->name('customer.rewards.buy-voucher');
+    });
 
     // Storefront
     Route::get('/shop', [StorefrontController::class, 'index'])
@@ -142,6 +154,10 @@ Route::middleware('auth')->group(function () {
                 OderController::class,
                 'updateStatus',
             ])->name('orders.update-status');
+            Route::patch('/manage/orders/{order}/items/{item}/payment', [
+                OderController::class,
+                'updatePaymentStatus',
+            ])->name('orders.update-payment-status');
 
             Route::get('/reports', [
                 \App\Http\Controllers\ReportsController::class,
@@ -237,24 +253,24 @@ Route::middleware('auth')->group(function () {
     ])->middleware('role:admin')->name('admin.reports');
 
     Route::post('/shop/{product}/chat', [
-    \App\Http\Controllers\ChatController::class,
-    'start',
-])->middleware('role:customer')->name('chat.start');
+        \App\Http\Controllers\ChatController::class,
+        'start',
+    ])->middleware('role:customer')->name('chat.start');
 
-Route::get('/chat', [
-    \App\Http\Controllers\ChatController::class,
-    'index',
-])->name('chat.index');
+    Route::get('/chat', [
+        \App\Http\Controllers\ChatController::class,
+        'index',
+    ])->name('chat.index');
 
-Route::get('/chat/{conversation}', [
-    \App\Http\Controllers\ChatController::class,
-    'show',
-])->name('chat.show');
+    Route::get('/chat/{conversation}', [
+        \App\Http\Controllers\ChatController::class,
+        'show',
+    ])->name('chat.show');
 
-Route::post('/chat/{conversation}/messages', [
-    \App\Http\Controllers\ChatController::class,
-    'storeMessage',
-])->name('chat.messages.store');
+    Route::post('/chat/{conversation}/messages', [
+        \App\Http\Controllers\ChatController::class,
+        'storeMessage',
+    ])->name('chat.messages.store');
 });
 
 require __DIR__ . '/auth.php';

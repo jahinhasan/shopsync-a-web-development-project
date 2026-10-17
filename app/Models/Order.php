@@ -18,6 +18,10 @@ class Order extends Model
         'phone',
         'shipping_address',
         'total',
+        'payment_reference',
+'payment_submitted_at',
+'voucher_code',
+'voucher_discount_total',
     ];
 
     public function user(): BelongsTo

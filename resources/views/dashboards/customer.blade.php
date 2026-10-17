@@ -8,28 +8,33 @@
                 <h1 class="mt-1 text-2xl font-bold tracking-tight text-gray-900">
                     Welcome, {{ auth()->user()->name }}
                 </h1>
+                <a href="{{ route('customer.rewards') }}"
+                    class="mt-3 inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-800 transition hover:-translate-y-0.5 hover:shadow-md">
+                    🪙 {{ number_format($pointsBalance) }} Points
+                    <span class="text-amber-600">· Redeem vouchers →</span>
+                </a>
             </div>
-<div class="flex flex-wrap items-center justify-end gap-2">
-    <a href="{{ route('shop.index') }}"
-       class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
-        Marketplace
-    </a>
+            <div class="flex flex-wrap items-center justify-end gap-2">
+                <a href="{{ route('shop.index') }}"
+                    class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700">
+                    Marketplace
+                </a>
 
-    <a href="{{ route('cart.index') }}"
-       class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
-        Shopping Cart
-    </a>
+                <a href="{{ route('cart.index') }}"
+                    class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
+                    Shopping Cart
+                </a>
 
-    <a href="{{ \Illuminate\Support\Facades\Route::has('orders.track') ? route('orders.track') : route('orders.index') }}"
-       class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
-        Track Order
-    </a>
+                <a href="{{ \Illuminate\Support\Facades\Route::has('orders.track') ? route('orders.track') : route('orders.index') }}"
+                    class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
+                    Track Order
+                </a>
 
-    <a href="{{ route('orders.index') }}"
-       class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
-        My Orders
-    </a>
-</div>
+                <a href="{{ route('orders.index') }}"
+                    class="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-700">
+                    My Orders
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -50,8 +55,9 @@
 
             {{-- Search and quick links --}}
             <section
-class="ss-dashboard-hero relative rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700 p-6 text-white shadow-lg sm:p-9"                <p class="text-sm font-semibold text-indigo-200">
-                    YOUR NEXT GREAT FIND STARTS HERE
+                class="ss-dashboard-hero relative rounded-3xl bg-gradient-to-br from-indigo-950 via-indigo-800 to-violet-700 p-6 text-white shadow-lg sm:p-9"
+                <p class="text-sm font-semibold text-indigo-200">
+                YOUR NEXT GREAT FIND STARTS HERE
                 </p>
 
                 <h2 class="mt-3 max-w-2xl text-3xl font-extrabold tracking-tight sm:text-4xl">
@@ -176,54 +182,46 @@ class="ss-dashboard-hero relative rounded-3xl bg-gradient-to-br from-indigo-950 
                         Sellers ranked by the number of currently available products.
                     </p>
                 </div>
-                <form action="{{ route('customer.dashboard') }}#marketplace-sellers"
-      method="GET"
-      class="mb-5 grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px_auto_auto] sm:items-end">
+                <form action="{{ route('customer.dashboard') }}#marketplace-sellers" method="GET"
+                    class="mb-5 grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px_auto_auto] sm:items-end">
 
-    <div>
-        <label for="seller-search"
-               class="mb-2 block text-sm font-semibold text-gray-800">
-            Search sellers
-        </label>
+                    <div>
+                        <label for="seller-search" class="mb-2 block text-sm font-semibold text-gray-800">
+                            Search sellers
+                        </label>
 
-        <input id="seller-search"
-               type="search"
-               name="seller_q"
-               value="{{ $sellerSearch }}"
-               placeholder="Enter shop name..."
-               class="w-full rounded-xl border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-    </div>
+                        <input id="seller-search" type="search" name="seller_q" value="{{ $sellerSearch }}"
+                            placeholder="Enter shop name..."
+                            class="w-full rounded-xl border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
 
-    <div>
-        <label for="seller-type"
-               class="mb-2 block text-sm font-semibold text-gray-800">
-            Filter by shop type
-        </label>
+                    <div>
+                        <label for="seller-type" class="mb-2 block text-sm font-semibold text-gray-800">
+                            Filter by shop type
+                        </label>
 
-        <select id="seller-type"
-                name="seller_type"
-                class="w-full rounded-xl border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-            <option value="">All shop types</option>
+                        <select id="seller-type" name="seller_type"
+                            class="w-full rounded-xl border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">All shop types</option>
 
-            @foreach ($shopTypes as $type)
-                <option value="{{ $type }}"
-                        @selected($sellerType === $type)>
-                    {{ $type }}
-                </option>
-            @endforeach
-        </select>
-    </div>
+                            @foreach ($shopTypes as $type)
+                                <option value="{{ $type }}" @selected($sellerType === $type)>
+                                    {{ $type }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-    <button type="submit"
-            class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
-        Search & Filter
-    </button>
+                    <button type="submit"
+                        class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                        Search & Filter
+                    </button>
 
-    <a href="{{ route('customer.dashboard') }}#marketplace-sellers"
-       class="inline-flex justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
-        Reset
-    </a>
-</form>
+                    <a href="{{ route('customer.dashboard') }}#marketplace-sellers"
+                        class="inline-flex justify-center rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                        Reset
+                    </a>
+                </form>
 
                 @if ($topShops->isNotEmpty())
                     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -254,12 +252,22 @@ class="ss-dashboard-hero relative rounded-3xl bg-gradient-to-br from-indigo-950 
             </section>
 
             {{-- Account shortcuts --}}
-            <section class="grid gap-4 border-t border-gray-200 pt-7 sm:grid-cols-3">
+            <section class="grid gap-4 border-t border-gray-200 pt-7 sm:grid-cols-2 lg:grid-cols-4">
                 <a href="{{ route('cart.index') }}"
                     class="ss-motion-card rounded-2xl border border-gray-200 bg-white p-5">
                     <h3 class="font-bold text-gray-900">Shopping cart</h3>
                     <p class="mt-2 text-sm text-gray-500">Review your items and quantities.</p>
                     <span class="mt-4 inline-block text-sm font-semibold text-indigo-600">Open cart →</span>
+                </a>
+                <a href="{{ route('customer.rewards') }}"
+                    class="ss-motion-card rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-5 transition hover:-translate-y-1 hover:shadow-lg">
+                    <h3 class="font-bold text-gray-900">Points & Vouchers</h3>
+                    <p class="mt-2 text-sm text-gray-500">
+                        Check your reward balance and redeem discount vouchers.
+                    </p>
+                    <span class="mt-4 inline-block text-sm font-semibold text-indigo-600">
+                        Open rewards →
+                    </span>
                 </a>
                 <a href="{{ route('orders.index') }}"
                     class="ss-motion-card rounded-2xl border border-gray-200 bg-white p-5">
