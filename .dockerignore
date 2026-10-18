@@ -1,0 +1,42 @@
+# Keep secrets, dev-only files and bulky local artifacts out of the image
+# and the build context.
+.git
+.github
+.claude
+.vscode
+.mcp.json
+.editorconfig
+
+# Secrets — must never enter an image layer.
+.env
+.env.*
+!.env.example
+
+# Dev dependencies and local build output (rebuilt inside Docker).
+node_modules
+vendor
+public/build
+public/hot
+public/storage
+public/fonts-manifest.dev.json
+
+# User-uploaded files must not be baked into images.
+storage
+
+# Dev Composer lock (the image installs from composer-production.lock).
+composer.lock
+
+# Test suite and tooling config (not needed at runtime).
+tests
+phpunit.xml
+.phpunit.cache
+
+# Local database and Docker test tooling.
+database/database.sqlite
+docker-compose.yml
+
+# Repo docs and editor/agent notes.
+*.md
+overview.json
+overview_architecture.puml
+boost.json

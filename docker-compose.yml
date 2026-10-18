@@ -1,0 +1,24 @@
+# Local testing of the production image. Not used on Render.
+#
+#   docker compose up --build -d
+#   docker compose logs -f app
+#   curl http://127.0.0.1:8080/up
+#   docker compose down
+#
+# The container reads variables from your local .env (which is not committed
+# and is never baked into the image). DB_HOST is overridden because 127.0.0.1
+# inside the container is the container itself — host.docker.internal points
+# at your machine, where the local database listens.
+
+services:
+  app:
+    build: .
+    image: shopsync:local
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    env_file:
+      - .env
+    environment:
+      DB_HOST: host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

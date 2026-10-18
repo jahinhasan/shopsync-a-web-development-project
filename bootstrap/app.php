@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         //
+        // Render terminates TLS in front of the app and forwards plain HTTP,
+        // so its proxy headers (X-Forwarded-For/Proto) must be trusted for
+        // Laravel to generate https:// URLs and secure session cookies.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'shop.approved' => \App\Http\Middleware\EnsureShopApplicationApproved::class,
