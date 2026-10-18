@@ -123,8 +123,8 @@ ShopSync is a multi-vendor online marketplace where customers browse products fr
 1. **Clone the repository**
 
     ```bash
-    git clone https://github.com/jahinhasan/shopsync.git
-    cd shopsync
+    git clone https://github.com/jahinhasan/shopsync-a-web-development-project.git
+    cd shopsync-a-web-development-project-main
     ```
 
 2. **Install dependencies**
@@ -148,7 +148,7 @@ ShopSync is a multi-vendor online marketplace where customers browse products fr
     DB_HOST=127.0.0.1
     DB_PORT=3306
     DB_DATABASE=shopsync
-    DB_USERNAME=root
+    DB_USERNAME=
     DB_PASSWORD=
     ```
 
@@ -255,67 +255,6 @@ The container reads your local `.env` (never baked into the image). Because
 `127.0.0.1` inside the container is the container itself, compose overrides
 `DB_HOST` to `host.docker.internal`. If the database is unreachable with
 "No route to host", allow connections from Docker's subnet in your firewall.
-
-### Deploy to Render
-
-1. **Push to GitHub** — commit `Dockerfile`, `.dockerignore`, `docker/`,
-   `docker-compose.yml` and `README.md`.
-2. **Create the service** — Render dashboard → **New → Web Service** →
-   connect this repository → branch `main` → **Runtime: Docker**.
-3. **Health Check Path** — `/up`.
-4. **Environment variables** (Render dashboard → Environment):
-
-   | Variable | Value |
-   | --- | --- |
-   | `APP_NAME` | `ShopSync` |
-   | `APP_ENV` | `production` |
-   | `APP_DEBUG` | `false` |
-   | `APP_KEY` | the existing application key (`php artisan key:show` locally) |
-   | `APP_URL` | your Render URL, e.g. `https://shopsync.onrender.com` |
-   | `DB_CONNECTION` | `mysql` |
-   | `DB_HOST` | TiDB Cloud host |
-   | `DB_PORT` | TiDB Cloud port (usually `4000`) |
-   | `DB_DATABASE` | existing TiDB database name |
-   | `DB_USERNAME` / `DB_PASSWORD` | TiDB credentials |
-   | `MYSQL_ATTR_SSL_CA` | `/etc/ssl/certs/ca-certificates.crt` (verified TLS, cert is in the image) |
-   | `SESSION_DRIVER` | `database` |
-   | `CACHE_STORE` | `database` |
-   | `QUEUE_CONNECTION` | `database` |
-   | `BROADCAST_CONNECTION` | `log` (see chat note below) |
-   | `LOG_CHANNEL` | `stack` (logs stream to Render's log viewer) |
-   | `FILESYSTEM_DISK` | `local` |
-   | `APP_LOCALE` / `APP_FALLBACK_LOCALE` | `en` |
-   | `MAIL_MAILER` | `log` until a mail provider is configured |
-   | `SHOPSYNC_BKASH_NUMBER` / `SHOPSYNC_NAGAD_NUMBER` | checkout payment numbers |
-
-5. **Deploy** — first build takes a few minutes. Build/runtime logs appear in
-   the Render dashboard ("Events" / "Logs" tabs).
-6. **Apply pending migrations manually** (never automatic on startup) — from
-   your machine, with the production env vars:
-   `php artisan migrate --force` after pointing `.env` at TiDB, or via
-   Render's SSH/Shell if available on your plan.
-7. **Verify** — open the URL: `/` redirects to the login page; log in and
-   check products, orders, checkout and admin moderation.
-
-### Production notes
-
-- **Remove demo accounts first** — `password`-password accounts seeded by
-  `shopsync:seed-demo` must not exist on a public deployment.
-- **TiDB TLS**: `MYSQL_ATTR_SSL_CA` points at the system CA bundle inside the
-  image, so the connection is certificate-verified (the app config passes it
-  through `PDO::MYSQL_ATTR_SSL_CA`). Do not disable verification.
-- **Chat without Reverb**: the default `BROADCAST_CONNECTION=log` keeps chat
-  working; messages appear after a refresh. Real-time delivery needs the
-  Reverb WebSocket server as a **second Render service** (Background Worker
-  or Web Service with WebSockets enabled) plus `VITE_REVERB_*` values at
-  build time. `APP_URL` and Reverb URLs must both be HTTPS.
-- **Uploaded files are ephemeral**: product images and shop-application
-  documents live on the container filesystem and are **lost on every
-  redeploy/restart** (Render's free tier has no persistent disk). Attach a
-  Render Disk (paid) or switch `FILESYSTEM_DISK` to S3 for persistence.
-- **Free plan caveat**: free instances sleep after idle and cold-start
-  slowly; plan availability and card requirements change — check Render's
-  current pricing page before relying on them.
 
 ## 🛠️ Artisan Commands
 
