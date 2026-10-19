@@ -21,8 +21,9 @@ public/storage
 public/fonts-manifest.dev.json
 
 # User-uploaded files must not be baked into images.
-storage
-
+/storage/framework/
+/storage/logs/
+/storage/app/private/
 # Dev Composer lock (the image installs from composer-production.lock).
 composer.lock
 

@@ -62,6 +62,7 @@ COPY database/ database/
 COPY public/ public/
 COPY resources/ resources/
 COPY routes/ routes/
+COPY storage/app/public/ storage/app/public/
 COPY artisan artisan
 # composer.json is required at runtime: Laravel's package manifest
 # (artisan package:discover) reads it from the app root.
