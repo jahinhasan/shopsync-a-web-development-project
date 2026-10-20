@@ -1,6 +1,6 @@
 {
   "rootFolder": "/home/jahinpc/shopsync",
-  "analyzedAt": "2026-10-17T15:09:31.525Z",
+  "analyzedAt": "2026-11-03T11:04:23.800Z",
   "rootStructure": [
     {
       "name": ".gitattributes",
@@ -27,10 +27,28 @@
       "lines": 161
     },
     {
+      "name": "Dockerfile",
+      "type": "file",
+      "size": 5085,
+      "lines": 128
+    },
+    {
       "name": "README.md",
       "type": "file",
-      "size": 2029,
-      "lines": 44
+      "size": 9757,
+      "lines": 285
+    },
+    {
+      "name": "VIVA_GUIDE_BANGLA.md",
+      "type": "file",
+      "size": 49457,
+      "lines": 1037
+    },
+    {
+      "name": "WINDOWS_SETUP_BANGLA.md",
+      "type": "file",
+      "size": 6862,
+      "lines": 188
     },
     {
       "name": "an serve",
@@ -65,6 +83,18 @@
       "type": "dir"
     },
     {
+      "name": "composer-production.json",
+      "type": "file",
+      "size": 2428,
+      "lines": 80
+    },
+    {
+      "name": "composer-production.lock",
+      "type": "file",
+      "size": 260137,
+      "lines": 7040
+    },
+    {
       "name": "composer.json",
       "type": "file",
       "size": 2889,
@@ -85,14 +115,30 @@
       "type": "dir"
     },
     {
+      "name": "docker",
+      "type": "dir"
+    },
+    {
+      "name": "docker-compose.yml",
+      "type": "file",
+      "size": 716,
+      "lines": 25
+    },
+    {
+      "name": "install.md",
+      "type": "file",
+      "size": 1965,
+      "lines": 46
+    },
+    {
       "name": "node_modules",
       "type": "dir"
     },
     {
       "name": "overview.json",
       "type": "file",
-      "size": 31977,
-      "lines": 1201
+      "size": 39398,
+      "lines": 1428
     },
     {
       "name": "overview_architecture.puml",
@@ -135,6 +181,24 @@
     {
       "name": "routes",
       "type": "dir"
+    },
+    {
+      "name": "setup-windows.bat",
+      "type": "file",
+      "size": 130,
+      "lines": 6
+    },
+    {
+      "name": "setup-windows.ps1",
+      "type": "file",
+      "size": 14672,
+      "lines": 400
+    },
+    {
+      "name": "shopsync-db-backup.sql",
+      "type": "file",
+      "size": 630378,
+      "lines": 3782
     },
     {
       "name": "storage",
@@ -186,17 +250,53 @@
       "",
       "Before relying on a package's API, confirm its installed version:"
     ],
+    "Dockerfile": [
+      "# ShopSync production image for Render (Docker runtime).",
+      "#",
+      "# Multi-stage build:",
+      "#   1. \"assets\"  — installs npm dependencies and produces the Vite build.",
+      "#   2. runtime   — PHP 8.3-FPM + nginx, with Composer dependencies installed",
+      "#                  from composer-production.json (platform-pinned to PHP 8.3,",
+      "#                  no dev packages).",
+      "#",
+      "# The container serves Laravel's public/ directory and listens on Render's",
+      "# dynamically assigned $PORT (default 8080 for local runs)."
+    ],
     "README.md": [
-      "## Demo Credentials",
+      "# ShopSync",
       "",
-      "Use the following credentials to explore the ShopSync application. **All demo accounts use the password `password`.**",
+      "<p align=\"center\">",
+      "<img src=\"https://img.shields.io/badge/Laravel-13-FF2D20?style=flat-square&logo=laravel\" alt=\"Laravel 13\">",
+      "<img src=\"https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php\" alt=\"PHP 8.3+\">",
+      "<img src=\"https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white\" alt=\"MySQL\">",
+      "<img src=\"https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white\" alt=\"Tailwind CSS\">",
+      "<img src=\"https://img.shields.io/badge/Laravel_Reverb-WebSockets-FF2D20?style=flat-square\" alt=\"Laravel Reverb\">",
+      "<img src=\"https://img.shields.io/badge/Tested_with-Pest-23D0A7?style=flat-square\" alt=\"Pest\">",
+      "</p>"
+    ],
+    "VIVA_GUIDE_BANGLA.md": [
+      "# ShopSync — Full Project Explanation (Viva Preparation Guide)",
       "",
-      "### 1. Admin Account",
+      "> Ei file ta porle puro project er sob bujhte parba — kon code kothay, ki kaj kore,",
+      "> kontar sathe konta connected, ar common viva question er answer.",
+      "> Sararup: **ShopSync ekta multi-vendor e-commerce marketplace** (Amazon/Daraz type),",
+      "> jekhane 3 dhoroner user ache — Customer, Business Owner (seller), Admin.",
       "",
-      "| Role | Email | Password |",
-      "|---|---|---|",
-      "| Administrator | `admin@shopsync.test` | `password` |",
-      ""
+      "---",
+      "",
+      "## Table of Contents"
+    ],
+    "WINDOWS_SETUP_BANGLA.md": [
+      "# ShopSync — Windows e Run korar Guide (Bangla)",
+      "",
+      "> Ei guide ta pore project ta Windows PC te **ek command diye** full setup + run",
+      "> korte parba. Detail explanation er jonno `VIVA_GUIDE_BANGLA.md` dekho.",
+      "",
+      "---",
+      "",
+      "## 1. Age ja lagbe (Prerequisites)",
+      "",
+      "Setup script (`setup-windows.ps1`) nijei sob kore — kintu PHP khub khoti hoy"
     ],
     "an serve": [
       "",
@@ -246,6 +346,30 @@
       "\"sail\": false,",
       "\"skills\": ["
     ],
+    "composer-production.json": [
+      "{",
+      "\"$schema\": \"https://getcomposer.org/schema.json\",",
+      "\"name\": \"laravel/laravel\",",
+      "\"type\": \"project\",",
+      "\"description\": \"The skeleton application for the Laravel framework.\",",
+      "\"keywords\": [",
+      "\"laravel\",",
+      "\"framework\"",
+      "],",
+      "\"license\": \"MIT\","
+    ],
+    "composer-production.lock": [
+      "{",
+      "\"_readme\": [",
+      "\"This file locks the dependencies of your project to a known state\",",
+      "\"Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies\",",
+      "\"This file is @generated automatically\"",
+      "],",
+      "\"content-hash\": \"de59b15c4a14777c3e9d9e233e5d4658\",",
+      "\"packages\": [",
+      "{",
+      "\"name\": \"brick/math\","
+    ],
     "composer.json": [
       "{",
       "\"$schema\": \"https://getcomposer.org/schema.json\",",
@@ -270,10 +394,34 @@
       "{",
       "\"name\": \"brick/math\","
     ],
+    "docker-compose.yml": [
+      "# Local testing of the production image. Not used on Render.",
+      "#",
+      "#   docker compose up --build -d",
+      "#   docker compose logs -f app",
+      "#   curl http://127.0.0.1:8080/up",
+      "#   docker compose down",
+      "#",
+      "# The container reads variables from your local .env (which is not committed",
+      "# and is never baked into the image). DB_HOST is overridden because 127.0.0.1",
+      "# inside the container is the container itself — host.docker.internal points"
+    ],
+    "install.md": [
+      "Amar project ta dekhe nilam — native (Docker chara) chalate nicher step gulo follow koro. Docker o ache kintu oi compose file ta host DB chara kaj kore na, tai new PC te native setup tai simplest.",
+      "",
+      "1. System packages (Arch)",
+      "",
+      "sudo pacman -S --needed php composer nodejs npm mariadb unzip git",
+      "Erbapor /etc/php/php.ini khule ei line ta uncomment koro (semicolon baad):",
+      "",
+      "",
+      "extension=pdo_mysql",
+      "Check: php -v 8.3+ hote hobe ar node -v 20+."
+    ],
     "overview.json": [
       "{",
       "\"rootFolder\": \"/home/jahinpc/shopsync\",",
-      "\"analyzedAt\": \"2026-10-17T12:48:11.548Z\",",
+      "\"analyzedAt\": \"2026-10-29T10:33:45.329Z\",",
       "\"rootStructure\": [",
       "{",
       "\"name\": \".gitattributes\",",
@@ -284,7 +432,7 @@
     ],
     "overview_architecture.puml": [
       "@startuml",
-      "' Generated by SASVA Maria on 2026-10-17T12:48:21.688Z",
+      "' Generated by SASVA Maria on 2026-10-29T10:33:55.523Z",
       "' ERROR: Diagram generation failed",
       "",
       "note \"Architecture Diagram Generation Failed\\n\\nError: No chat model configured\\n\\nPlease check the logs for more details.\" as ErrorNote",
@@ -336,6 +484,38 @@
       "};",
       ""
     ],
+    "setup-windows.bat": [
+      "@echo off",
+      "title ShopSync - Windows Setup",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File \"%~dp0setup-windows.ps1\"",
+      "echo.",
+      "pause",
+      ""
+    ],
+    "setup-windows.ps1": [
+      "# ============================================================",
+      "# ShopSync - Windows One-Command Setup",
+      "# Run: double-click setup-windows.bat  (or run this file with PowerShell)",
+      "#",
+      "# Ki kore:",
+      "#   1. PHP / Composer / Node.js khuje (na thakle winget diye install)",
+      "#   2. PHP extension gulo on kore (pdo_sqlite, mbstring, openssl...)",
+      "#   3. composer install + npm install",
+      "#   4. Fresh .env (SQLite) + APP_KEY",
+      "#   5. migrate + demo data seed"
+    ],
+    "shopsync-db-backup.sql": [
+      "/*M!999999\\- enable the sandbox mode */",
+      "-- MariaDB dump 10.20-13.0.2-MariaDB, for Linux (x86_64)",
+      "--",
+      "-- Host: 127.0.0.1    Database: smart_shoping",
+      "-- ------------------------------------------------------",
+      "-- Server version\t13.0.2-MariaDB",
+      "",
+      "/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;",
+      "/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;",
+      "/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;"
+    ],
     "tailwind.config.js": [
       "import defaultTheme from 'tailwindcss/defaultTheme';",
       "import forms from '@tailwindcss/forms';",
@@ -370,7 +550,13 @@
     {
       "path": "app",
       "category": "frontend",
-      "fileCount": 63,
+      "fileCount": 68,
+      "primaryLanguage": "PHP"
+    },
+    {
+      "path": "app/Services",
+      "category": "backend",
+      "fileCount": 1,
       "primaryLanguage": "PHP"
     },
     {
@@ -382,13 +568,19 @@
     {
       "path": "config",
       "category": "config",
-      "fileCount": 12,
+      "fileCount": 13,
       "primaryLanguage": "PHP"
+    },
+    {
+      "path": "docker",
+      "category": "docs",
+      "fileCount": 4,
+      "primaryLanguage": "Shell"
     },
     {
       "path": "public",
       "category": "assets",
-      "fileCount": 5,
+      "fileCount": 4,
       "primaryLanguage": "PHP"
     },
     {
@@ -424,17 +616,17 @@
     {
       "path": "storage/app",
       "category": "frontend",
-      "fileCount": 212
+      "fileCount": 214
     },
     {
       "path": "storage/app/private/shop-applications",
       "category": "frontend",
-      "fileCount": 2
+      "fileCount": 4
     },
     {
       "path": "storage/app/private/shop-applications/documents",
       "category": "docs",
-      "fileCount": 1
+      "fileCount": 2
     },
     {
       "path": "storage/app/public",
@@ -450,34 +642,40 @@
     {
       "path": "tests",
       "category": "tests",
-      "fileCount": 11,
+      "fileCount": 13,
       "primaryLanguage": "PHP"
     }
   ],
   "readmeParagraphs": {
     "storage/app/datasets": "# ShopSync Demo Dataset",
-    "root": "## Demo Credentials"
+    "root": "# ShopSync"
   },
   "totals": {
-    "numFiles": 485,
-    "numDirs": 90,
-    "totalSizeBytes": 15785716,
-    "totalLinesOfCode": 17163
+    "numFiles": 536,
+    "numDirs": 94,
+    "totalSizeBytes": 17851132,
+    "totalLinesOfCode": 22594
   },
   "fileCategories": {
-    "config": 12,
-    "documentation": 40,
-    "other": 255,
-    "source": 177,
+    "config": 17,
+    "documentation": 43,
+    "other": 260,
+    "source": 215,
     "build": 1
   },
   "linesOfCodePerLanguage": {
-    "PHP": 16870,
-    "JavaScript": 293
+    "PHP": 21833,
+    "Shell": 62,
+    "JavaScript": 293,
+    "Batch": 6,
+    "PowerShell": 400
   },
   "filesPerLanguage": {
-    "PHP": 172,
-    "JavaScript": 5
+    "PHP": 207,
+    "Shell": 1,
+    "JavaScript": 5,
+    "Batch": 1,
+    "PowerShell": 1
   },
   "projectTypes": [
     "JavaScript/Node.js",
@@ -486,198 +684,108 @@
   "frameworks": [
     "Vite"
   ],
-  "entryPoints": [],
-  "ciCdTools": [],
+  "entryPoints": [
+    "docker/start.sh"
+  ],
+  "ciCdTools": [
+    "Docker"
+  ],
   "packageManagers": [
     "npm/yarn",
     "composer"
   ],
   "topLevelDirectories": [
     {
-      "name": "resources",
-      "numFiles": 73,
-      "totalLoc": 6479,
-      "dominantLanguage": "PHP"
-    },
-    {
       "name": "app",
-      "numFiles": 63,
-      "totalLoc": 6153,
+      "numFiles": 68,
+      "totalLoc": 6965,
       "dominantLanguage": "PHP"
     },
     {
-      "name": "config",
-      "numFiles": 12,
-      "totalLoc": 1511,
+      "name": "resources",
+      "numFiles": 74,
+      "totalLoc": 6804,
       "dominantLanguage": "PHP"
     },
     {
       "name": "storage",
-      "numFiles": 227,
-      "totalLoc": 908,
+      "numFiles": 250,
+      "totalLoc": 4275,
+      "dominantLanguage": "PHP"
+    },
+    {
+      "name": "config",
+      "numFiles": 13,
+      "totalLoc": 1519,
       "dominantLanguage": "PHP"
     },
     {
       "name": "database",
-      "numFiles": 23,
-      "totalLoc": 873,
-      "dominantLanguage": "PHP"
-    },
-    {
-      "name": "bootstrap",
-      "numFiles": 5,
-      "totalLoc": 414,
+      "numFiles": 28,
+      "totalLoc": 1218,
       "dominantLanguage": "PHP"
     },
     {
       "name": "tests",
-      "numFiles": 11,
-      "totalLoc": 406,
+      "numFiles": 13,
+      "totalLoc": 570,
       "dominantLanguage": "PHP"
     },
     {
       "name": "routes",
       "numFiles": 5,
-      "totalLoc": 357,
+      "totalLoc": 373,
       "dominantLanguage": "PHP"
     },
     {
-      "name": "public",
+      "name": "bootstrap",
       "numFiles": 5,
+      "totalLoc": 340,
+      "dominantLanguage": "PHP"
+    },
+    {
+      "name": "docker",
+      "numFiles": 4,
+      "totalLoc": 62,
+      "dominantLanguage": "Shell"
+    },
+    {
+      "name": "public",
+      "numFiles": 4,
       "totalLoc": 21,
       "dominantLanguage": "PHP"
     }
   ],
   "detailedDirectories": [
     {
-      "path": "resources",
-      "name": "resources",
-      "level": 1,
-      "numFiles": 73,
-      "totalLoc": 6479,
-      "dominantLanguage": "PHP",
-      "category": "General",
-      "description": "General module with 73 files (PHP)",
-      "subdirectories": [
-        {
-          "path": "resources/views",
-          "name": "views",
-          "level": 2,
-          "numFiles": 68,
-          "totalLoc": 6227,
-          "dominantLanguage": "PHP",
-          "category": "Views/Templates",
-          "description": "Views/Templates module with 68 files (PHP)",
-          "subdirectories": [
-            {
-              "path": "resources/views/admin",
-              "name": "admin",
-              "level": 3,
-              "numFiles": 7,
-              "totalLoc": 1198,
-              "dominantLanguage": "PHP",
-              "category": "General",
-              "description": "General module with 7 files (PHP)",
-              "subdirectories": []
-            },
-            {
-              "path": "resources/views/auth",
-              "name": "auth",
-              "level": 3,
-              "numFiles": 6,
-              "totalLoc": 273,
-              "dominantLanguage": "PHP",
-              "category": "General",
-              "description": "General module with 6 files (PHP)",
-              "subdirectories": []
-            },
-            {
-              "path": "resources/views/chat",
-              "name": "chat",
-              "level": 3,
-              "numFiles": 2,
-              "totalLoc": 257,
-              "dominantLanguage": "PHP",
-              "category": "General",
-              "description": "General module with 2 files (PHP)",
-              "subdirectories": []
-            },
-            {
-              "path": "resources/views/components",
-              "name": "components",
-              "level": 3,
-              "numFiles": 13,
-              "totalLoc": 185,
-              "dominantLanguage": "PHP",
-              "category": "General",
-              "description": "General module with 13 files (PHP)",
-              "subdirectories": []
-            },
-            {
-              "path": "resources/views/cart",
-              "name": "cart",
-              "level": 3,
-              "numFiles": 2,
-              "totalLoc": 160,
-              "dominantLanguage": "PHP",
-              "category": "General",
-              "description": "General module with 2 files (PHP)",
-              "subdirectories": []
-            }
-          ]
-        },
-        {
-          "path": "resources/js",
-          "name": "js",
-          "level": 2,
-          "numFiles": 3,
-          "totalLoc": 252,
-          "dominantLanguage": "JavaScript",
-          "category": "General",
-          "description": "General module with 3 files (JavaScript)",
-          "subdirectories": []
-        },
-        {
-          "path": "resources/css",
-          "name": "css",
-          "level": 2,
-          "numFiles": 2,
-          "totalLoc": 0,
-          "category": "General",
-          "description": "General module with 2 files",
-          "subdirectories": []
-        }
-      ]
-    },
-    {
       "path": "app",
       "name": "app",
       "level": 1,
-      "numFiles": 63,
-      "totalLoc": 6153,
+      "numFiles": 68,
+      "totalLoc": 6965,
       "dominantLanguage": "PHP",
       "category": "Application",
-      "description": "Application module with 63 files (PHP)",
+      "description": "Application module with 68 files (PHP)",
       "subdirectories": [
         {
           "path": "app/Http",
           "name": "Http",
           "level": 2,
-          "numFiles": 42,
-          "totalLoc": 3106,
+          "numFiles": 43,
+          "totalLoc": 3378,
           "dominantLanguage": "PHP",
           "category": "General",
-          "description": "General module with 42 files (PHP)",
+          "description": "General module with 43 files (PHP)",
           "subdirectories": [
             {
               "path": "app/Http/Controllers",
               "name": "Controllers",
               "level": 3,
-              "numFiles": 35,
-              "totalLoc": 2780,
+              "numFiles": 36,
+              "totalLoc": 3052,
               "dominantLanguage": "PHP",
               "category": "Controllers",
-              "description": "Controllers module with 35 files (PHP)",
+              "description": "Controllers module with 36 files (PHP)",
               "subdirectories": []
             },
             {
@@ -731,11 +839,11 @@
           "path": "app/Models",
           "name": "Models",
           "level": 2,
-          "numFiles": 12,
-          "totalLoc": 476,
+          "numFiles": 15,
+          "totalLoc": 669,
           "dominantLanguage": "PHP",
           "category": "Models/Entities",
-          "description": "Models/Entities module with 12 files (PHP)",
+          "description": "Models/Entities module with 15 files (PHP)",
           "subdirectories": []
         },
         {
@@ -763,45 +871,134 @@
       ]
     },
     {
-      "path": "config",
-      "name": "config",
+      "path": "resources",
+      "name": "resources",
       "level": 1,
-      "numFiles": 12,
-      "totalLoc": 1511,
+      "numFiles": 74,
+      "totalLoc": 6804,
       "dominantLanguage": "PHP",
-      "category": "Configuration",
-      "description": "Configuration module with 12 files (PHP)",
-      "subdirectories": []
+      "category": "General",
+      "description": "General module with 74 files (PHP)",
+      "subdirectories": [
+        {
+          "path": "resources/views",
+          "name": "views",
+          "level": 2,
+          "numFiles": 69,
+          "totalLoc": 6552,
+          "dominantLanguage": "PHP",
+          "category": "Views/Templates",
+          "description": "Views/Templates module with 69 files (PHP)",
+          "subdirectories": [
+            {
+              "path": "resources/views/admin",
+              "name": "admin",
+              "level": 3,
+              "numFiles": 7,
+              "totalLoc": 1198,
+              "dominantLanguage": "PHP",
+              "category": "General",
+              "description": "General module with 7 files (PHP)",
+              "subdirectories": []
+            },
+            {
+              "path": "resources/views/auth",
+              "name": "auth",
+              "level": 3,
+              "numFiles": 6,
+              "totalLoc": 273,
+              "dominantLanguage": "PHP",
+              "category": "General",
+              "description": "General module with 6 files (PHP)",
+              "subdirectories": []
+            },
+            {
+              "path": "resources/views/chat",
+              "name": "chat",
+              "level": 3,
+              "numFiles": 2,
+              "totalLoc": 257,
+              "dominantLanguage": "PHP",
+              "category": "General",
+              "description": "General module with 2 files (PHP)",
+              "subdirectories": []
+            },
+            {
+              "path": "resources/views/cart",
+              "name": "cart",
+              "level": 3,
+              "numFiles": 2,
+              "totalLoc": 221,
+              "dominantLanguage": "PHP",
+              "category": "General",
+              "description": "General module with 2 files (PHP)",
+              "subdirectories": []
+            },
+            {
+              "path": "resources/views/components",
+              "name": "components",
+              "level": 3,
+              "numFiles": 13,
+              "totalLoc": 185,
+              "dominantLanguage": "PHP",
+              "category": "General",
+              "description": "General module with 13 files (PHP)",
+              "subdirectories": []
+            }
+          ]
+        },
+        {
+          "path": "resources/js",
+          "name": "js",
+          "level": 2,
+          "numFiles": 3,
+          "totalLoc": 252,
+          "dominantLanguage": "JavaScript",
+          "category": "General",
+          "description": "General module with 3 files (JavaScript)",
+          "subdirectories": []
+        },
+        {
+          "path": "resources/css",
+          "name": "css",
+          "level": 2,
+          "numFiles": 2,
+          "totalLoc": 0,
+          "category": "General",
+          "description": "General module with 2 files",
+          "subdirectories": []
+        }
+      ]
     },
     {
       "path": "storage",
       "name": "storage",
       "level": 1,
-      "numFiles": 227,
-      "totalLoc": 908,
+      "numFiles": 250,
+      "totalLoc": 4275,
       "dominantLanguage": "PHP",
       "category": "General",
-      "description": "General module with 227 files (PHP)",
+      "description": "General module with 250 files (PHP)",
       "subdirectories": [
         {
           "path": "storage/framework",
           "name": "framework",
           "level": 2,
-          "numFiles": 12,
-          "totalLoc": 908,
+          "numFiles": 33,
+          "totalLoc": 4275,
           "dominantLanguage": "PHP",
           "category": "General",
-          "description": "General module with 12 files (PHP)",
+          "description": "General module with 33 files (PHP)",
           "subdirectories": [
             {
               "path": "storage/framework/views",
               "name": "views",
               "level": 3,
-              "numFiles": 5,
-              "totalLoc": 842,
+              "numFiles": 26,
+              "totalLoc": 4209,
               "dominantLanguage": "PHP",
               "category": "Views/Templates",
-              "description": "Views/Templates module with 5 files (PHP)",
+              "description": "Views/Templates module with 26 files (PHP)",
               "subdirectories": []
             },
             {
@@ -841,10 +1038,10 @@
           "path": "storage/app",
           "name": "app",
           "level": 2,
-          "numFiles": 212,
+          "numFiles": 214,
           "totalLoc": 0,
           "category": "Application",
-          "description": "Application module with 212 files",
+          "description": "Application module with 214 files",
           "subdirectories": [
             {
               "path": "storage/app/public",
@@ -870,10 +1067,10 @@
               "path": "storage/app/private",
               "name": "private",
               "level": 3,
-              "numFiles": 3,
+              "numFiles": 5,
               "totalLoc": 0,
               "category": "General",
-              "description": "General module with 3 files",
+              "description": "General module with 5 files",
               "subdirectories": []
             }
           ]
@@ -891,21 +1088,32 @@
       ]
     },
     {
+      "path": "config",
+      "name": "config",
+      "level": 1,
+      "numFiles": 13,
+      "totalLoc": 1519,
+      "dominantLanguage": "PHP",
+      "category": "Configuration",
+      "description": "Configuration module with 13 files (PHP)",
+      "subdirectories": []
+    },
+    {
       "path": "database",
       "name": "database",
       "level": 1,
-      "numFiles": 23,
-      "totalLoc": 873,
+      "numFiles": 28,
+      "totalLoc": 1218,
       "dominantLanguage": "PHP",
       "category": "Data",
-      "description": "Data module with 23 files (PHP)",
+      "description": "Data module with 28 files (PHP)",
       "subdirectories": [
         {
           "path": "database/migrations",
           "name": "migrations",
           "level": 2,
           "numFiles": 20,
-          "totalLoc": 801,
+          "totalLoc": 936,
           "dominantLanguage": "PHP",
           "category": "General",
           "description": "General module with 20 files (PHP)",
@@ -915,11 +1123,11 @@
           "path": "database/factories",
           "name": "factories",
           "level": 2,
-          "numFiles": 1,
-          "totalLoc": 46,
+          "numFiles": 6,
+          "totalLoc": 256,
           "dominantLanguage": "PHP",
           "category": "General",
-          "description": "General module with 1 files (PHP)",
+          "description": "General module with 6 files (PHP)",
           "subdirectories": []
         },
         {
@@ -936,47 +1144,24 @@
       ]
     },
     {
-      "path": "bootstrap",
-      "name": "bootstrap",
-      "level": 1,
-      "numFiles": 5,
-      "totalLoc": 414,
-      "dominantLanguage": "PHP",
-      "category": "General",
-      "description": "General module with 5 files (PHP)",
-      "subdirectories": [
-        {
-          "path": "bootstrap/cache",
-          "name": "cache",
-          "level": 2,
-          "numFiles": 3,
-          "totalLoc": 379,
-          "dominantLanguage": "PHP",
-          "category": "General",
-          "description": "General module with 3 files (PHP)",
-          "subdirectories": []
-        }
-      ]
-    },
-    {
       "path": "tests",
       "name": "tests",
       "level": 1,
-      "numFiles": 11,
-      "totalLoc": 406,
+      "numFiles": 13,
+      "totalLoc": 570,
       "dominantLanguage": "PHP",
       "category": "Testing",
-      "description": "Testing module with 11 files (PHP)",
+      "description": "Testing module with 13 files (PHP)",
       "subdirectories": [
         {
           "path": "tests/Feature",
           "name": "Feature",
           "level": 2,
-          "numFiles": 8,
-          "totalLoc": 338,
+          "numFiles": 10,
+          "totalLoc": 502,
           "dominantLanguage": "PHP",
           "category": "General",
-          "description": "General module with 8 files (PHP)",
+          "description": "General module with 10 files (PHP)",
           "subdirectories": [
             {
               "path": "tests/Feature/Auth",
@@ -1009,21 +1194,55 @@
       "name": "routes",
       "level": 1,
       "numFiles": 5,
-      "totalLoc": 357,
+      "totalLoc": 373,
       "dominantLanguage": "PHP",
       "category": "General",
       "description": "General module with 5 files (PHP)",
       "subdirectories": []
     },
     {
-      "path": "public",
-      "name": "public",
+      "path": "bootstrap",
+      "name": "bootstrap",
       "level": 1,
       "numFiles": 5,
-      "totalLoc": 21,
+      "totalLoc": 340,
       "dominantLanguage": "PHP",
       "category": "General",
       "description": "General module with 5 files (PHP)",
+      "subdirectories": [
+        {
+          "path": "bootstrap/cache",
+          "name": "cache",
+          "level": 2,
+          "numFiles": 3,
+          "totalLoc": 300,
+          "dominantLanguage": "PHP",
+          "category": "General",
+          "description": "General module with 3 files (PHP)",
+          "subdirectories": []
+        }
+      ]
+    },
+    {
+      "path": "docker",
+      "name": "docker",
+      "level": 1,
+      "numFiles": 4,
+      "totalLoc": 62,
+      "dominantLanguage": "Shell",
+      "category": "Documentation",
+      "description": "Documentation module with 4 files (Shell)",
+      "subdirectories": []
+    },
+    {
+      "path": "public",
+      "name": "public",
+      "level": 1,
+      "numFiles": 4,
+      "totalLoc": 21,
+      "dominantLanguage": "PHP",
+      "category": "General",
+      "description": "General module with 4 files (PHP)",
       "subdirectories": []
     }
   ],
@@ -1033,31 +1252,31 @@
         "path": "app",
         "name": "app",
         "level": 1,
-        "numFiles": 63,
-        "totalLoc": 6153,
+        "numFiles": 68,
+        "totalLoc": 6965,
         "dominantLanguage": "PHP",
         "category": "Application",
-        "description": "Application module with 63 files (PHP)",
+        "description": "Application module with 68 files (PHP)",
         "subdirectories": [
           {
             "path": "app/Http",
             "name": "Http",
             "level": 2,
-            "numFiles": 42,
-            "totalLoc": 3106,
+            "numFiles": 43,
+            "totalLoc": 3378,
             "dominantLanguage": "PHP",
             "category": "General",
-            "description": "General module with 42 files (PHP)",
+            "description": "General module with 43 files (PHP)",
             "subdirectories": [
               {
                 "path": "app/Http/Controllers",
                 "name": "Controllers",
                 "level": 3,
-                "numFiles": 35,
-                "totalLoc": 2780,
+                "numFiles": 36,
+                "totalLoc": 3052,
                 "dominantLanguage": "PHP",
                 "category": "Controllers",
-                "description": "Controllers module with 35 files (PHP)",
+                "description": "Controllers module with 36 files (PHP)",
                 "subdirectories": []
               },
               {
@@ -1111,11 +1330,11 @@
             "path": "app/Models",
             "name": "Models",
             "level": 2,
-            "numFiles": 12,
-            "totalLoc": 476,
+            "numFiles": 15,
+            "totalLoc": 669,
             "dominantLanguage": "PHP",
             "category": "Models/Entities",
-            "description": "Models/Entities module with 12 files (PHP)",
+            "description": "Models/Entities module with 15 files (PHP)",
             "subdirectories": []
           },
           {
@@ -1143,7 +1362,13 @@
         ]
       }
     ],
-    "entryPointDetails": [],
+    "entryPointDetails": [
+      {
+        "path": "../docker/start.sh",
+        "type": "Unknown",
+        "description": ""
+      }
+    ],
     "serviceArchitecture": {
       "microservices": [],
       "monoliths": [],
@@ -1161,11 +1386,11 @@
   "largeFiles": [
     {
       "path": "storage/logs/laravel.log",
-      "sizeMb": 7.09
+      "sizeMb": 7.12
     },
     {
       "path": "storage/logs/browser.log",
-      "sizeMb": 2.21
+      "sizeMb": 2.31
     }
   ],
   "dependencies": {
@@ -1186,14 +1411,14 @@
     "total": 11
   },
   "complexity": {
-    "averageFileSize": 35.38762886597938,
-    "maxFileSize": 74344.0384,
+    "averageFileSize": 42.15298507462686,
+    "maxFileSize": 74658.6112,
     "nestedDepth": 0,
-    "estimatedComplexity": "medium"
+    "estimatedComplexity": "high"
   },
   "gitRepo": {
-    "firstCommitDate": "2026-10-17",
-    "totalCommits": 42,
+    "firstCommitDate": "2026-10-20",
+    "totalCommits": 49,
     "numContributors": 0,
     "currentBranch": "main",
     "remoteUrls": [
