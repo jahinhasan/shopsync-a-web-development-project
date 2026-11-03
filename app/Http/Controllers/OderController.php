@@ -9,10 +9,12 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\Rule;
+use App\Models\InventoryTransaction;
 use App\Models\OrderIdem;
 use App\Models\Product;
 use App\Services\CustomerRewardService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 class OderController extends Controller
 {
     public function index(): View
@@ -89,29 +91,70 @@ class OderController extends Controller
             'cancelled' => [],
         ];
 
-        $currentStatus = $item->status;
         $newStatus = $validated['status'];
 
-        if ($currentStatus === $newStatus) {
+        $changed = DB::transaction(function () use ($item, $newStatus, $allowedTransitions, $order) {
+            // Lock the item row so duplicate cancellation requests serialize:
+            // the second request reads the already-applied status and exits
+            // through the unchanged path instead of restoring stock twice.
+            $lockedItem = OrderIdem::query()
+                ->whereKey($item->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $currentStatus = $lockedItem->status;
+
+            if ($currentStatus === $newStatus) {
+                return false;
+            }
+
+            if (! in_array(
+                $newStatus,
+                $allowedTransitions[$currentStatus] ?? [],
+                true
+            )) {
+                throw ValidationException::withMessages([
+                    'status' => "Cannot change item status from {$currentStatus} to {$newStatus}.",
+                ]);
+            }
+
+            $lockedItem->update(['status' => $newStatus]);
+
+            // Stock was deducted at checkout: cancelling returns it to the
+            // shelf and records the reversal in the inventory ledger.
+            if ($newStatus === 'cancelled' && $lockedItem->product_id) {
+                $product = Product::withTrashed()
+                    ->whereKey($lockedItem->product_id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $quantityBefore = (int) $product->stock;
+                $quantity = (int) $lockedItem->quantity;
+
+                $product->increment('stock', $quantity);
+
+                InventoryTransaction::create([
+                    'product_id' => $product->id,
+                    'user_id' => $product->user_id,
+                    'order_id' => $order->id,
+                    'type' => 'cancellation',
+                    'quantity_before' => $quantityBefore,
+                    'quantity_change' => $quantity,
+                    'quantity_after' => $quantityBefore + $quantity,
+                    'reason' => 'Stock restored for cancelled item in order ' . $order->order_number,
+                ]);
+            }
+
+            return true;
+        });
+
+        if (! $changed) {
             return back()->with('success', 'Item status is unchanged.');
         }
 
-        if (! in_array(
-            $newStatus,
-            $allowedTransitions[$currentStatus] ?? [],
-            true
-        )) {
-            return back()
-                ->withErrors([
-                    'status' => "Cannot change item status from {$currentStatus} to {$newStatus}.",
-                ])
-                ->withInput();
-        }
-
-        $item->update(['status' => $newStatus]);
         if ($newStatus === 'delivered') {
-    app(CustomerRewardService::class)->processDeliveredItems($order);
-}
+            app(CustomerRewardService::class)->processDeliveredItems($order);
+        }
 
         return redirect()
             ->route('owner.order.manage')
