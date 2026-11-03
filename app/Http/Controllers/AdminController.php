@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\OrderIdem;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
@@ -17,11 +18,14 @@ class AdminController extends Controller
         $totalCategories = Category::count();
         $totalOrders = Order::count();
 
+        // Item-level statuses are the authoritative order lifecycle
+        // (orders.status stays 'pending' after creation), so sales are
+        // aggregated from order items the same way the owner dashboard is.
         $salesStatuses = ['processing', 'shipped', 'delivered'];
 
-        $totalSales = Order::query()
+        $totalSales = OrderIdem::query()
             ->whereIn('status', $salesStatuses)
-            ->sum('total');
+            ->sum('subtotal');
 
         $recentOrders = Order::query()
             ->with('user')

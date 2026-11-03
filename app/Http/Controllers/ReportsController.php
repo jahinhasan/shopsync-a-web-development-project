@@ -12,6 +12,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 
@@ -21,45 +22,51 @@ class ReportsController extends Controller
     {
         [$from, $to] = $this->dateRange($request);
 
+        $salesStatuses = ['processing', 'shipped', 'delivered'];
+
         $orders = Order::whereBetween('created_at', [
             $from->copy()->startOfDay(),
             $to->copy()->endOfDay(),
         ]);
 
-        $salesStatuses = ['processing', 'shipped', 'delivered'];
-
         $totalOrders = (clone $orders)->count();
 
-        $totalSales = (clone $orders)
-            ->whereIn('status', $salesStatuses)
-            ->sum('total');
+        // Item-level statuses are the authoritative order lifecycle, so all
+        // sales figures aggregate order items (same definition as the owner
+        // report) within the report's order date range. The status column is
+        // qualified because the daily/monthly queries join orders.
+        $salesItems = OrderIdem::query()
+            ->whereIn('order_idems.status', $salesStatuses)
+            ->whereHas('order', function ($query) use ($from, $to) {
+                $query->whereBetween('created_at', [
+                    $from->copy()->startOfDay(),
+                    $to->copy()->endOfDay(),
+                ]);
+            });
 
-        $dailySales = (clone $orders)
-            ->whereIn('status', $salesStatuses)
-            ->selectRaw('DATE(created_at) as sale_date, SUM(total) as sales, COUNT(*) as orders_count')
-            ->groupByRaw('DATE(created_at)')
+        $totalSales = (clone $salesItems)->sum('subtotal');
+
+        $dailySales = (clone $salesItems)
+            ->join('orders', 'order_idems.order_id', '=', 'orders.id')
+            ->selectRaw('DATE(orders.created_at) as sale_date, SUM(order_idems.subtotal) as sales, COUNT(DISTINCT order_idems.order_id) as orders_count')
+            ->groupByRaw('DATE(orders.created_at)')
             ->orderBy('sale_date')
             ->get();
 
-        $monthlySales = Order::whereIn('status', $salesStatuses)
-            ->whereBetween('created_at', [
-                $from->copy()->startOfDay(),
-                $to->copy()->endOfDay(),
-            ])
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as sale_month, SUM(total) as sales, COUNT(*) as orders_count")
-            ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m')")
+        // DATE_FORMAT is MySQL-only; SQLite (local/test) uses strftime.
+        $monthExpression = DB::getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', orders.created_at)"
+            : "DATE_FORMAT(orders.created_at, '%Y-%m')";
+
+        $monthlySales = (clone $salesItems)
+            ->join('orders', 'order_idems.order_id', '=', 'orders.id')
+            ->selectRaw("{$monthExpression} as sale_month, SUM(order_idems.subtotal) as sales, COUNT(DISTINCT order_idems.order_id) as orders_count")
+            ->groupByRaw($monthExpression)
             ->orderBy('sale_month')
             ->get();
 
-        $bestSellingProducts = OrderIdem::query()
+        $bestSellingProducts = (clone $salesItems)
             ->selectRaw('product_id, MAX(product_name) as product_name, SUM(quantity) as quantity_sold, SUM(subtotal) as revenue')
-            ->whereHas('order', function ($query) use ($from, $to, $salesStatuses) {
-                $query->whereIn('status', $salesStatuses)
-                    ->whereBetween('created_at', [
-                        $from->copy()->startOfDay(),
-                        $to->copy()->endOfDay(),
-                    ]);
-            })
             ->groupBy('product_id')
             ->orderByDesc('quantity_sold')
             ->take(10)
