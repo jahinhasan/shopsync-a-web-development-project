@@ -116,7 +116,7 @@ class CartController extends Controller
     }
 
 
-    public function placeOrder(Request $request, Product $products): RedirectResponse
+    public function placeOrder(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'customer_name' => ['required', 'string', 'max:255'],
@@ -135,7 +135,7 @@ class CartController extends Controller
         $cart = $request->session()->get('cart', []);
 
         if (empty($cart)) {
-            return redirect()->route('cart.index')->with('error', 'your cart is empty');
+            return redirect()->route('cart.index')->with('error', 'Your cart is empty.');
         }
 
         foreach ($cart as $quantity) {
@@ -172,7 +172,7 @@ class CartController extends Controller
                     ! $product || !$product->isAvailableToCustomers() ||  $quantity > $product->stock
                 ) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'cart' => 'A product is unavailable or its stock has changed. please review your cart.',
+                        'cart' => 'A product is unavailable or its stock has changed. Please review your cart.',
                     ]);
                 }
 
