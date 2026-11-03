@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Validator;
 class CreateAdmin extends Command
 {
     protected $signature = 'app:create-admin';
-    protected $description = 'Create anadminstarator account';
+    protected $description = 'Create an administrator account';
     public function handle(): int
     {
         $name = trim($this->ask('Admin name') ?? '');

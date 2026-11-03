@@ -40,7 +40,10 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // FILESYSTEM_PUBLIC_ROOT lets a mounted persistent volume (e.g.
+            // a Render disk) hold uploaded files; unset, uploads live in the
+            // image's storage/app/public as before. See the deployment guide.
+            'root' => env('FILESYSTEM_PUBLIC_ROOT', storage_path('app/public')),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
