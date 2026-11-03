@@ -102,11 +102,19 @@ public function create(): View
         $data = $request->validated();
         if($request->hasFile('image')){
             $data['image_path'] = $request->file('image')->store('products','public');
+
+            // Remove the replaced file so old product images do not pile up.
+            if (
+                $product->image_path
+                && $product->image_path !== $data['image_path']
+            ) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image_path);
+            }
         }
 
         unset($data['image']);
         $product->update($data);
-        return redirect()->route('owner.products.index')->with('sucessful','productbn updated successfully');
+        return redirect()->route('owner.products.index')->with('success','Product updated successfully');
     }
 
     /**
