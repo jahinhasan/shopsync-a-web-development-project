@@ -55,3 +55,35 @@ test('product reviews are throttled after 10 per minute', function () {
     $this->post(route('shop.reviews.store', $product), ['comment' => 'one more'])
         ->assertStatus(429);
 });
+
+test('checkout is throttled after 10 orders per minute', function () {
+    $owner = chatThrottleOwner();
+    $category = Category::factory()->create();
+    $product = Product::factory()
+        ->for($owner, 'owner')
+        ->for($category)
+        ->create(['price' => 100, 'stock' => 100]);
+    $customer = User::factory()->customer()->create();
+
+    $this->actingAs($customer);
+
+    for ($i = 0; $i < 10; $i++) {
+        $this->withSession(['cart' => [$product->id => 1]])
+            ->post(route('checkout.place'), [
+                'customer_name' => 'Throttle Customer',
+                'phone' => '01700000000',
+                'shipping_address' => 'House 12, Dhaka',
+                'payment_method' => 'cod',
+            ])
+            ->assertRedirect();
+    }
+
+    $this->withSession(['cart' => [$product->id => 1]])
+        ->post(route('checkout.place'), [
+            'customer_name' => 'Throttle Customer',
+            'phone' => '01700000000',
+            'shipping_address' => 'House 12, Dhaka',
+            'payment_method' => 'cod',
+        ])
+        ->assertStatus(429);
+});

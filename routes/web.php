@@ -84,6 +84,7 @@ Route::middleware('auth')->group(function () {
         ->name('checkout.index');
 
     Route::post('/checkout', [CartController::class, 'placeOrder'])
+        ->middleware('throttle:10,1')
         ->name('checkout.place');
 
     // Customer orders
