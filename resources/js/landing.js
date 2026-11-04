@@ -223,6 +223,28 @@ function makeRoseScene() {
 
         // Odd petal count: θ over [0, π] covers the entire curve exactly once.
         const steps = 240;
+
+        // Ghost of the finished curve so the panel never looks empty
+        // while the trace is at an early angle.
+        ctx.beginPath();
+
+        for (let i = 0; i <= steps; i++) {
+            const theta = (Math.PI * i) / steps;
+            const r = radius * Math.cos(5 * theta);
+            const x = cx + r * Math.cos(theta);
+            const y = cy + r * Math.sin(theta);
+
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+
+        ctx.strokeStyle = 'rgba(129, 140, 248, 0.16)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
         const drawn = Math.max(2, Math.round(steps * (thetaMax / Math.PI)));
 
         ctx.beginPath();
@@ -240,8 +262,8 @@ function makeRoseScene() {
             }
         }
 
-        ctx.strokeStyle = '#818cf8';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#a5b4fc';
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.stroke();
 
@@ -358,7 +380,16 @@ function makeGrowthScene() {
 
         ctx.lineTo(frontX, baseline);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(99, 102, 241, 0.1)';
+
+        // Fade the fill out toward its leading edge so the moving
+        // boundary never shows a hard vertical seam.
+        const fill = ctx.createLinearGradient(w * 0.06, 0, frontX, 0);
+        const fadeStart = Math.max(0, 1 - 40 / Math.max(frontX - w * 0.06, 1));
+
+        fill.addColorStop(0, 'rgba(99, 102, 241, 0.12)');
+        fill.addColorStop(fadeStart, 'rgba(99, 102, 241, 0.12)');
+        fill.addColorStop(1, 'rgba(99, 102, 241, 0)');
+        ctx.fillStyle = fill;
         ctx.fill();
 
         // The curve itself.
@@ -486,7 +517,13 @@ function tick(now) {
 
     for (const stage of stages) {
         if (stage.visible && !document.hidden) {
-            stage.scene.step(stage.ctx, stage.w, stage.h, t, dt);
+            // Isolate scenes: a failure in one panel must not stop the rest.
+            try {
+                stage.scene.step(stage.ctx, stage.w, stage.h, t, dt);
+            } catch (error) {
+                console.warn('landing scene failed', stage.canvas.id, error);
+                stage.scene = { step: () => {} };
+            }
         }
     }
 
