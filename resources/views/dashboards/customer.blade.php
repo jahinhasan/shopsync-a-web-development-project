@@ -144,24 +144,33 @@
                 @include('dashboards.partials.product-grid', ['products' => $featuredProducts])
             </section>
 
-            {{-- Category-specific product rows --}}
-            @foreach ($categories as $category)
-                <section>
-                    <div class="mb-5 flex items-end justify-between gap-3">
-                        <div>
-                            <p class="text-xs font-bold uppercase tracking-widest text-indigo-600">Browse by category
-                            </p>
-                            <h2 class="mt-1 text-2xl font-bold text-gray-900">{{ $category->name }}</h2>
-                        </div>
-                        <a href="{{ route('shop.index', ['category' => $category->slug]) }}"
-                            class="shrink-0 text-sm font-semibold text-indigo-600 hover:text-indigo-800">
-                            See more →
-                        </a>
+            {{-- Category quick-links: real browsing happens in the shop, so the
+                 dashboard stays compact instead of repeating one grid per category --}}
+            <section>
+                <div class="mb-4 flex items-end justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-widest text-indigo-600">Browse by category</p>
+                        <h2 class="mt-1 text-2xl font-bold text-gray-900">Jump straight to what you need</h2>
                     </div>
+                    <a href="{{ route('shop.index') }}"
+                        class="shrink-0 text-sm font-semibold text-indigo-600 hover:text-indigo-800">
+                        Browse everything →
+                    </a>
+                </div>
 
-                    @include('dashboards.partials.product-grid', ['products' => $category->products])
-                </section>
-            @endforeach
+                <div class="flex flex-wrap gap-2">
+                    @forelse ($categories as $category)
+                        <a href="{{ route('shop.index', ['category' => $category->slug]) }}"
+                            class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-200 transition hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-300">
+                            {{ $category->name }}
+                        </a>
+                    @empty
+                        <p class="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
+                            No categories have available products yet.
+                        </p>
+                    @endforelse
+                </div>
+            </section>
 
             {{-- New arrivals --}}
             <section>

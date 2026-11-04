@@ -36,17 +36,8 @@ class DashboardController extends Controller
         $categories = Category::query()
             ->where('is_active', true)
             ->whereHas('products', $availableProducts)
-            ->with([
-                'products' => fn($query) => $query
-                    ->availableToCustomers()
-                    ->with('owner')
-                    ->latest()
-                    ->take(8),
-            ])
             ->orderBy('name')
-            ->get()
-            ->filter(fn($category) => $category->products->isNotEmpty())
-            ->values();
+            ->get();
 
         $sellerSearch = mb_substr(
             trim((string) $request->query('seller_q', '')),
