@@ -7,11 +7,13 @@ use App\Models\Order;
 use App\Models\OrderIdem;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Analytics\AnalyticsService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Cache;
 
 class AdminController extends Controller
 {
-    public function dashboard(): View
+    public function dashboard(AnalyticsService $analytics): View
     {
         $totalUsers = User::count();
         $totalProducts = Product::count();
@@ -46,6 +48,20 @@ class AdminController extends Controller
             ->groupBy('role')
             ->pluck('total', 'role');
 
+        // Rolling 30-day analytics for the dashboard trend section; the
+        // reports pages carry the filterable, longer-horizon views.
+        $trend = Cache::remember(
+            'analytics:admin:dashboard:30d',
+            now()->addMinutes(10),
+            fn (): array => $analytics->overview(
+                null,
+                now()->subDays(29)->startOfDay(),
+                now()->endOfDay(),
+                'daily',
+                false,
+            ),
+        );
+
         return view('dashboards.admin', compact(
             'totalUsers',
             'totalProducts',
@@ -55,6 +71,7 @@ class AdminController extends Controller
             'recentOrders',
             'lowStockProducts',
             'roleCounts',
+            'trend',
         ));
     }
 }

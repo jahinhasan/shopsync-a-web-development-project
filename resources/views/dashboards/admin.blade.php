@@ -74,6 +74,113 @@
                 @endforeach
             </section>
 
+            {{-- Rolling 30-day analytics pulse --}}
+            @php
+                $pulseStatusColors = [
+                    'delivered' => 'var(--ss-status-good)',
+                    'pending' => 'var(--ss-status-warning)',
+                    'cancelled' => 'var(--ss-status-critical)',
+                    'processing' => '#6b7280',
+                    'shipped' => '#475569',
+                ];
+
+                $pulseSegments = collect($trend['statusDistribution'])
+                    ->map(fn (array $row): array => [
+                        'label' => ucfirst($row['status']),
+                        'value' => $row['count'],
+                        'display' => number_format($row['count']).' items',
+                        'short' => number_format($row['count']),
+                        'color' => $pulseStatusColors[$row['status']] ?? '#9ca3af',
+                    ])->all();
+            @endphp
+            <section class="grid gap-4 lg:grid-cols-3" data-reveal>
+                <x-chart-card title="Net sales — last 30 days" class="lg:col-span-2"
+                              subtitle="Marketplace-wide, daily buckets"
+                              footnote="Net sales count only items in processing, shipped or delivered status. The dotted continuation is a statistical projection — an estimate, never a fact. Full filterable analytics live in Reports.">
+                    <x-chart-line :labels="$trend['series']['labels']"
+                                 :series="[['name' => 'Net sales', 'values' => $trend['series']['netSales'], 'color' => 'var(--ss-chart-1)', 'area' => true]]"
+                                 :regression="$trend['series']['regression']"
+                                 :projection="$trend['series']['projection']"
+                                 :anomalies="$trend['series']['anomalies']"
+                                 format="money"
+                                 aria-label="Marketplace net sales over the last 30 days"/>
+
+                    <x-slot name="table">
+                        <div class="max-h-64 overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Day</th>
+                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Orders</th>
+                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Net sales</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 tabular-nums">
+                                    @forelse ($trend['series']['labels'] as $index => $label)
+                                        <tr>
+                                            <td class="px-4 py-2 text-gray-700">{{ $label }}</td>
+                                            <td class="px-4 py-2 text-right text-gray-700">{{ number_format($trend['series']['orders'][$index]) }}</td>
+                                            <td class="px-4 py-2 text-right text-gray-900">৳{{ number_format($trend['series']['netSales'][$index], 2) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">No data yet.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-slot>
+                </x-chart-card>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="rounded-xl bg-gray-50 p-4">
+                            <p class="text-sm font-medium text-gray-500">Net sales (30d)</p>
+                            <p class="mt-2 text-xl font-bold text-gray-900">৳{{ number_format($trend['totals']['netSales'], 0) }}</p>
+                        </div>
+                        <div class="rounded-xl bg-gray-50 p-4">
+                            <p class="text-sm font-medium text-gray-500">Orders (30d)</p>
+                            <p class="mt-2 text-xl font-bold text-gray-900">{{ number_format($trend['totals']['orders']) }}</p>
+                        </div>
+                        <div class="rounded-xl bg-gray-50 p-4">
+                            <p class="text-sm font-medium text-gray-500">Avg order value</p>
+                            <p class="mt-2 text-xl font-bold text-gray-900">৳{{ number_format($trend['totals']['aov'], 0) }}</p>
+                        </div>
+                        <div class="rounded-xl bg-gray-50 p-4">
+                            <p class="text-sm font-medium text-gray-500">Customers ordering</p>
+                            <p class="mt-2 text-xl font-bold text-gray-900">{{ number_format($trend['totals']['customers']) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                        <h4 class="text-sm font-bold text-gray-900">Order status mix</h4>
+                        <p class="mt-1 text-xs text-gray-500">All items placed in the window.</p>
+                        <div class="mt-3">
+                            @if (count($pulseSegments) > 0)
+                                <x-chart-segmented :items="$pulseSegments" variant="thin"
+                                                  :show-legend="false"
+                                                  aria-label="Order item status distribution, last 30 days"/>
+                            @else
+                                <p class="py-3 text-center text-xs text-gray-500">No orders yet.</p>
+                            @endif
+                        </div>
+                        <ul class="mt-3 space-y-1.5">
+                            @foreach ($trend['statusDistribution'] as $row)
+                                <li class="flex items-center justify-between text-xs">
+                                    <span class="flex items-center gap-2 text-gray-600">
+                                        <span class="h-2 w-2 rounded-sm {{ $row['status'] === 'delivered' ? 'bg-emerald-600' : ($row['status'] === 'pending' ? 'bg-amber-500' : ($row['status'] === 'cancelled' ? 'bg-red-600' : ($row['status'] === 'processing' ? 'bg-gray-500' : 'bg-slate-600'))) }}"
+                                              aria-hidden="true"></span>
+                                        {{ ucfirst($row['status']) }}
+                                    </span>
+                                    <span class="font-medium tabular-nums text-gray-800">
+                                        {{ number_format($row['count']) }} <span class="text-gray-400">({{ $row['share'] }}%)</span>
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
             {{-- User roles --}}
             <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
                      data-reveal>

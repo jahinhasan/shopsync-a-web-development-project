@@ -107,6 +107,85 @@
                 </article>
             </section>
 
+            {{-- Rolling 30-day analytics pulse (scoped to this shop) --}}
+            <section class="grid gap-4 lg:grid-cols-3" data-reveal>
+                <x-chart-card title="Your net sales — last 30 days" class="lg:col-span-2"
+                              subtitle="Your products only, daily buckets"
+                              footnote="Net sales count only your items in processing, shipped or delivered status; cancelled and pending items are excluded. The dotted continuation is a statistical projection — an estimate, never a fact. Filterable analytics live in Reports.">
+                    <x-chart-line :labels="$trend['series']['labels']"
+                                 :series="[['name' => 'Net sales', 'values' => $trend['series']['netSales'], 'color' => 'var(--ss-chart-1)', 'area' => true]]"
+                                 :regression="$trend['series']['regression']"
+                                 :projection="$trend['series']['projection']"
+                                 :anomalies="$trend['series']['anomalies']"
+                                 format="money"
+                                 aria-label="Your shop's net sales over the last 30 days"/>
+
+                    <x-slot name="table">
+                        <div class="max-h-64 overflow-y-auto">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Day</th>
+                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Orders</th>
+                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Net sales</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 tabular-nums">
+                                    @forelse ($trend['series']['labels'] as $index => $label)
+                                        <tr>
+                                            <td class="px-4 py-2 text-gray-700">{{ $label }}</td>
+                                            <td class="px-4 py-2 text-right text-gray-700">{{ number_format($trend['series']['orders'][$index]) }}</td>
+                                            <td class="px-4 py-2 text-right text-gray-900">৳{{ number_format($trend['series']['netSales'][$index], 2) }}</td>
+                                        </tr>
+                                    @empty
+                                        <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">No data yet.</td></tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-slot>
+                </x-chart-card>
+
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="rounded-xl bg-gray-50 p-4">
+                            <p class="text-sm font-medium text-gray-500">Net sales (30d)</p>
+                            <p class="mt-2 text-xl font-bold text-gray-900">৳{{ number_format($trend['totals']['netSales'], 0) }}</p>
+                        </div>
+                        <div class="rounded-xl bg-gray-50 p-4">
+                            <p class="text-sm font-medium text-gray-500">Orders (30d)</p>
+                            <p class="mt-2 text-xl font-bold text-gray-900">{{ number_format($trend['totals']['orders']) }}</p>
+                        </div>
+                        <div class="rounded-xl bg-gray-50 p-4">
+                            <p class="text-sm font-medium text-gray-500">Avg order value</p>
+                            <p class="mt-2 text-xl font-bold text-gray-900">৳{{ number_format($trend['totals']['aov'], 0) }}</p>
+                        </div>
+                        <div class="rounded-xl bg-gray-50 p-4">
+                            <p class="text-sm font-medium text-gray-500">Customers buying from you</p>
+                            <p class="mt-2 text-xl font-bold text-gray-900">{{ number_format($trend['totals']['customers']) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                        <h4 class="text-sm font-bold text-gray-900">Top products (30d)</h4>
+                        <p class="mt-1 text-xs text-gray-500">By net sales share.</p>
+                        @if (count($trend['topProducts']) > 0)
+                            <div class="mt-3">
+                                <x-chart-rank-bars :items="collect($trend['topProducts'])->take(5)->map(fn ($p) => [
+                                    'name' => $p['name'],
+                                    'value' => $p['revenue'],
+                                    'display' => '৳'.number_format($p['revenue'], 0).' ('.$p['share'].'%)',
+                                ])->all()" aria-label="Your top products by revenue, last 30 days"/>
+                            </div>
+                        @else
+                            <p class="py-4 text-center text-xs text-gray-500">
+                                No sales yet — top products appear once orders arrive.
+                            </p>
+                        @endif
+                    </div>
+                </div>
+            </section>
+
             {{-- Recent orders --}}
             <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
                      data-reveal>

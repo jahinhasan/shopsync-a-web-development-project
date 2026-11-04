@@ -8,57 +8,56 @@ use App\Models\Order;
 use App\Models\OrderIdem;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Analytics\AnalyticsCsv;
+use App\Services\Analytics\AnalyticsService;
+use App\Services\Analytics\WindowResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
-
 
 class ReportsController extends Controller
 {
-    public function admin(Request $request): View
+    public function admin(Request $request, AnalyticsService $analytics): View|StreamedResponse
     {
-        [$from, $to] = $this->dateRange($request);
+        $window = WindowResolver::resolve($request);
 
-        $salesStatuses = ['processing', 'shipped', 'delivered'];
+        $payload = $this->cachedOverview(
+            $analytics,
+            'admin',
+            null,
+            $window['from'],
+            $window['to'],
+            $window['granularity'],
+            $window['compare'],
+        );
 
-        $orders = Order::whereBetween('created_at', [
-            $from->copy()->startOfDay(),
-            $to->copy()->endOfDay(),
-        ]);
+        if ($request->input('export') === 'csv') {
+            return AnalyticsCsv::stream($payload);
+        }
 
-        $totalOrders = (clone $orders)->count();
+        $salesStatuses = AnalyticsService::SALES_STATUSES;
 
-        // Item-level statuses are the authoritative order lifecycle, so all
-        // sales figures aggregate order items (same definition as the owner
-        // report) within the report's order date range. The status column is
-        // qualified because the daily/monthly queries join orders.
         $salesItems = OrderIdem::query()
             ->whereIn('order_idems.status', $salesStatuses)
-            ->whereHas('order', function ($query) use ($from, $to) {
+            ->whereHas('order', function ($query) use ($window) {
                 $query->whereBetween('created_at', [
-                    $from->copy()->startOfDay(),
-                    $to->copy()->endOfDay(),
+                    $window['from']->copy()->startOfDay(),
+                    $window['to']->copy()->endOfDay(),
                 ]);
             });
-
-        $totalSales = (clone $salesItems)->sum('subtotal');
-
-        $dailySales = (clone $salesItems)
-            ->join('orders', 'order_idems.order_id', '=', 'orders.id')
-            ->selectRaw('DATE(orders.created_at) as sale_date, SUM(order_idems.subtotal) as sales, COUNT(DISTINCT order_idems.order_id) as orders_count')
-            ->groupByRaw('DATE(orders.created_at)')
-            ->orderBy('sale_date')
-            ->get();
 
         // DATE_FORMAT is MySQL-only; SQLite (local/test) uses strftime.
         $monthExpression = DB::getDriverName() === 'sqlite'
             ? "strftime('%Y-%m', orders.created_at)"
             : "DATE_FORMAT(orders.created_at, '%Y-%m')";
 
-        $monthlySales = (clone $salesItems)
+        // All-time by design — the heading and the legacy report both say so.
+        $monthlySales = OrderIdem::query()
+            ->whereIn('order_idems.status', $salesStatuses)
             ->join('orders', 'order_idems.order_id', '=', 'orders.id')
             ->selectRaw("{$monthExpression} as sale_month, SUM(order_idems.subtotal) as sales, COUNT(DISTINCT order_idems.order_id) as orders_count")
             ->groupByRaw($monthExpression)
@@ -79,74 +78,51 @@ class ReportsController extends Controller
             ->get();
 
         return view('reports.admin', [
-            'from' => $from->toDateString(),
-            'to' => $to->toDateString(),
-            'totalUsers' => User::count(),
-            'totalProducts' => Product::count(),
-            'totalCategories' => Category::count(),
-            'totalOrders' => $totalOrders,
-            'totalSales' => $totalSales,
-            'dailySales' => $dailySales,
+            'payload' => $payload,
+            'window' => $window,
             'monthlySales' => $monthlySales,
             'bestSellingProducts' => $bestSellingProducts,
             'lowStockProducts' => $lowStockProducts,
+            'totalUsers' => User::count(),
+            'totalProducts' => Product::count(),
+            'totalCategories' => Category::count(),
         ]);
     }
 
-    public function owner(Request $request): View
+    public function owner(Request $request, AnalyticsService $analytics): View|StreamedResponse
     {
-        [$from, $to] = $this->dateRange($request);
+        $window = WindowResolver::resolve($request);
+        $ownerId = (int) Auth::id();
 
-        $ownerId = Auth::id();
+        $payload = $this->cachedOverview(
+            $analytics,
+            'owner',
+            $ownerId,
+            $window['from'],
+            $window['to'],
+            $window['granularity'],
+            $window['compare'],
+        );
 
-        $orderItems = OrderIdem::query()
+        if ($request->input('export') === 'csv') {
+            return AnalyticsCsv::stream($payload);
+        }
+
+        $salesStatuses = AnalyticsService::SALES_STATUSES;
+
+        $salesItems = OrderIdem::query()
             ->whereHas('product', function ($query) use ($ownerId) {
                 $query->where('user_id', $ownerId);
             })
-            ->whereHas('order', function ($query) use ($from, $to) {
+            ->whereHas('order', function ($query) use ($window) {
                 $query->whereBetween('created_at', [
-                    $from->copy()->startOfDay(),
-                    $to->copy()->endOfDay(),
-                ]);
-            });
-
-        $salesStatuses = ['processing', 'shipped', 'delivered'];
-
-        $totalSales = (clone $orderItems)
-            ->whereIn('status', $salesStatuses)
-            ->sum('subtotal');
-
-        $totalItemsSold = (clone $orderItems)
-            ->whereIn('status', $salesStatuses)
-            ->sum('quantity');
-
-        $totalOrders = (clone $orderItems)
-            ->whereIn('status', $salesStatuses)
-            ->distinct()
-            ->count('order_id');
-
-        $dailySales = (clone $orderItems)
-            ->whereIn('order_idems.status', $salesStatuses)
-            ->whereHas('order', function ($query) use ($from, $to) {
-                $query->whereBetween('created_at', [
-                    $from->copy()->startOfDay(),
-                    $to->copy()->endOfDay(),
+                    $window['from']->copy()->startOfDay(),
+                    $window['to']->copy()->endOfDay(),
                 ]);
             })
-            ->join('orders', 'order_idems.order_id', '=', 'orders.id')
-            ->selectRaw('DATE(orders.created_at) as sale_date, SUM(order_idems.subtotal) as sales, SUM(order_idems.quantity) as quantity_sold')
-            ->groupByRaw('DATE(orders.created_at)')
-            ->orderBy('sale_date')
-            ->get();
+            ->whereIn('status', $salesStatuses);
 
-        $bestSellingProducts = (clone $orderItems)
-            ->whereIn('status', $salesStatuses)
-            ->whereHas('order', function ($query) use ($from, $to) {
-                $query->whereBetween('created_at', [
-                    $from->copy()->startOfDay(),
-                    $to->copy()->endOfDay(),
-                ]);
-            })
+        $bestSellingProducts = (clone $salesItems)
             ->selectRaw('product_id, MAX(product_name) as product_name, SUM(quantity) as quantity_sold, SUM(subtotal) as revenue')
             ->groupBy('product_id')
             ->orderByDesc('quantity_sold')
@@ -165,36 +141,44 @@ class ReportsController extends Controller
             ->get();
 
         return view('reports.owner', [
-            'from' => $from->toDateString(),
-            'to' => $to->toDateString(),
-            'totalSales' => $totalSales,
-            'totalItemsSold' => $totalItemsSold,
-            'totalOrders' => $totalOrders,
-            'dailySales' => $dailySales,
+            'payload' => $payload,
+            'window' => $window,
             'bestSellingProducts' => $bestSellingProducts,
             'lowStockProducts' => $lowStockProducts,
             'inventoryTransactions' => $inventoryTransactions,
         ]);
     }
 
-    private function dateRange(Request $request): array
-    {
-        $validated = $request->validate([
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-        ]);
+    /**
+     * The analytics payload is pure read-model output, so a short-lived
+     * cache keeps repeated filter combinations cheap without staleness
+     * leaking between scopes or parameter sets.
+     */
+    private function cachedOverview(
+        AnalyticsService $analytics,
+        string $scope,
+        ?int $ownerId,
+        Carbon $from,
+        Carbon $to,
+        string $granularity,
+        bool $compare,
+    ): array {
+        $key = sprintf(
+            'analytics:%s:%s:%s:%s:%s:%s',
+            $scope,
+            $ownerId ?? 'all',
+            $from->toDateString(),
+            $to->toDateString(),
+            $granularity,
+            $compare ? 'compare' : 'raw',
+        );
 
-        $from = Carbon::parse($validated['from'] ?? now()->startOfMonth()->toDateString());
-        $to = Carbon::parse($validated['to'] ?? now()->toDateString());
-
-        if ($from->greaterThan(now()->endOfDay())) {
-            throw ValidationException::withMessages([
-                'from' => 'Start date cannot be in the future.',
-            ]);
-        }
-
-        return [$from, $to];
+        return Cache::remember($key, now()->addMinutes(10), fn (): array => $analytics->overview(
+            $ownerId,
+            $from,
+            $to,
+            $granularity,
+            $compare,
+        ));
     }
-
-
 }

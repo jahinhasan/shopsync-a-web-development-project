@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderIdem;
 use App\Models\Product;
+use App\Services\Analytics\AnalyticsService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(AnalyticsService $analytics): View
     {
         $userId = Auth::id();
 
@@ -77,6 +79,21 @@ class DashboardController extends Controller
             ->distinct()
             ->count('orders.id');
 
+        $ownerId = (int) $userId;
+
+        // Rolling 30-day analytics scoped strictly to this owner's products.
+        $trend = Cache::remember(
+            'analytics:owner:dashboard:30d:'.$ownerId,
+            now()->addMinutes(10),
+            fn (): array => $analytics->overview(
+                $ownerId,
+                now()->subDays(29)->startOfDay(),
+                now()->endOfDay(),
+                'daily',
+                false,
+            ),
+        );
+
         return view('dashboards.owner', compact(
             'totalProducts',
             'totalStock',
@@ -87,6 +104,7 @@ class DashboardController extends Controller
             'pendingOrders',
             'todaySales',
             'todayOrders',
+            'trend',
         ));
     }
 }
