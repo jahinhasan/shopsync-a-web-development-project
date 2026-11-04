@@ -159,10 +159,74 @@ show, and the section stays hidden rather than guessing.
 
 - The whole payload is cached via `Cache::remember` with a key encoding scope, owner id, window,
   granularity and compare flag (`analytics:{scope}:{owner|all}:{from}:{to}:{gran}:{compare|raw}`),
-  TTL 10 minutes — dashboards use fixed `analytics:admin:dashboard:30d` /
-  `analytics:owner:dashboard:30d:{id}` keys. Different scopes/params can never read each other's
-  cache entries (covered by a feature test).
+  TTL 10 minutes — dashboards use `analytics:admin:dashboard:{window}` and
+  `analytics:owner:dashboard:{window}:{id}` with `window` ∈ {7d, 30d, 90d, 12m}. Different
+  scopes/params can never read each other's cache entries (covered by a feature test); the owner
+  id in the key comes from `Auth::id()`, never from the request.
 - Guards summary: regression n≥3; z-scores n≥10 & σ>0; projection n≥14; heatmap ≥14 days;
   percentage change undefined on zero base → `—`.
 - No sample data, no hardcoded values, no migrations: every figure derives from existing tables
   at request time.
+
+## 17. Dashboard windows (`WindowResolver::dashboard`)
+
+The dashboards expose four presets, each with its own bucket size so a longer window does not
+produce an unreadable chart:
+
+| Preset | Days | Granularity | Compare basis |
+| --- | --- | --- | --- |
+| 7d   | 7   | daily   | previous 7 days   |
+| 30d (default) | 30 | daily | previous 30 days |
+| 90d  | 90  | weekly  | previous 90 days  |
+| 12m  | 365 | monthly | previous 365 days |
+
+- Anything outside the whitelist (or absent) falls back to `30d`; an invalid value is rejected by
+  validation with a session error rather than silently coerced at the data layer.
+- Compare is always on for dashboards: every headline KPI that has a same-scope previous-window
+  counterpart gets a Δ% chip, and every series gets the layered trend summary below.
+
+## 18. Dashboard order funnel (`orderFunnel`)
+
+Completion and cancellation rates are computed **per item** from the existing status
+distribution — no extra query. The denominators are honest by construction:
+
+    completionRate   = delivered / all items placed in the window   (null when total = 0)
+    cancellationRate = cancelled / all items placed in the window   (null when total = 0)
+
+Pending and processing items stay in the denominator: an order not yet delivered is not evidence
+of failure, and excluding it would inflate the completion rate. `open = total − delivered −
+cancelled` is displayed as "N still open" so the two rates always reconcile with the total.
+
+## 19. Dashboard stock health (`stockHealth`)
+
+One aggregate query on the products table (Eloquent, so soft-deleted rows are excluded
+automatically), scoped by owner when the caller is an owner:
+
+    lowStock   = COUNT(stock <= 5)      outOfStock = COUNT(stock <= 0)
+
+It is deliberately **current-state**, not window-scoped: shelf stock is a stock variable, not a
+flow, so slicing it by date would be meaningless. This number replaces the old hero tile that
+counted a `take(8)` collection and called it "low stock items" — that figure was capped by the
+display limit, not by the data, and was quietly wrong whenever more than eight products ran low.
+
+## 20. Dashboard trend summary (`salesSeries.summary`)
+
+Layered verdict on the net-sales series, each layer honest about its own confidence:
+
+- **Direction** (`rising` / `falling` / `stable`): sign of the fitted slope against a dead-band
+  threshold of `max(0.01, 1% of the mean)` — flat-but-noisy series are called *stable*, not
+  forced into a direction. `null` when regression is unavailable (n < 3).
+- **Fit**: R² banded as strong (≥ 0.5) / moderate (≥ 0.25) / weak (< 0.25), shown next to the R²
+  value so the band is never presented without its evidence.
+- **Rate of change**: the acceleration layer's direction (needs 14 buckets), else `null`.
+
+## 21. Dashboard customer frequency (`acquisition` additions)
+
+- `orderDistribution`: ordering customers bucketed 1 / 2 / 3+ qualifying orders in the window —
+  derived from the per-customer order counts already computed for the repeat rate, no extra query.
+- `avgOrderValuePerCustomer` = window net sales ÷ ordering customers (2 dp, `null` when there are
+  no ordering customers) — a per-buying-customer view that deliberately differs from headline AOV,
+  which divides by orders.
+- Admin dashboards additionally get a `newCustomers` Δ% (registrations this window vs the previous
+  window of equal length; `null` on zero base). Owner dashboards never receive it.
+
