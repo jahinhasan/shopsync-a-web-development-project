@@ -77,8 +77,14 @@ test('admin report sales figures come from order items in the date range', funct
     $this->actingAs($admin)
         ->get(route('admin.reports'))
         ->assertOk()
-        ->assertViewHas('totalSales', fn ($totalSales) => (float) $totalSales === 4100.0)
-        ->assertViewHas('dailySales', fn ($dailySales) => count($dailySales) === 1)
+        ->assertViewHas('payload', function (array $payload): bool {
+            // Delivered (1600) + processing (2500); the cancelled item is
+            // excluded from net sales, orders and units alike.
+            return (float) $payload['totals']['netSales'] === 4100.0
+                && (int) $payload['totals']['orders'] === 1
+                && (int) $payload['totals']['units'] === 3
+                && count(array_filter($payload['series']['netSales'], fn ($v): bool => (float) $v > 0)) === 1;
+        })
         ->assertViewHas('monthlySales', fn ($monthlySales) => count($monthlySales) === 1)
         ->assertViewHas('bestSellingProducts', function ($bestSelling) use ($productA) {
             $top = $bestSelling->first();
@@ -104,5 +110,5 @@ test('admin report excludes items from orders outside the date range', function 
         ]))
         ->assertSessionHasNoErrors()
         ->assertOk()
-        ->assertViewHas('totalSales', fn ($totalSales) => (float) $totalSales === 0.0);
+        ->assertViewHas('payload', fn (array $payload): bool => (float) $payload['totals']['netSales'] === 0.0);
 });
