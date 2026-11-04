@@ -8,12 +8,14 @@ use App\Models\OrderIdem;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\Analytics\AnalyticsService;
+use App\Services\Analytics\WindowResolver;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class AdminController extends Controller
 {
-    public function dashboard(AnalyticsService $analytics): View
+    public function dashboard(Request $request, AnalyticsService $analytics): View
     {
         $totalUsers = User::count();
         $totalProducts = Product::count();
@@ -48,17 +50,21 @@ class AdminController extends Controller
             ->groupBy('role')
             ->pluck('total', 'role');
 
-        // Rolling 30-day analytics for the dashboard trend section; the
-        // reports pages carry the filterable, longer-horizon views.
+        // Window-scoped analytics for the dashboard section; the reports
+        // pages carry the filterable, longer-horizon views. Comparison is
+        // always on so the KPI delta chips are honest, and the cache key
+        // carries the window so scopes never bleed.
+        $window = WindowResolver::dashboard($request);
+
         $trend = Cache::remember(
-            'analytics:admin:dashboard:30d',
+            'analytics:admin:dashboard:'.$window['window'],
             now()->addMinutes(10),
             fn (): array => $analytics->overview(
                 null,
-                now()->subDays(29)->startOfDay(),
-                now()->endOfDay(),
-                'daily',
-                false,
+                $window['from'],
+                $window['to'],
+                $window['granularity'],
+                true,
             ),
         );
 
@@ -72,6 +78,7 @@ class AdminController extends Controller
             'lowStockProducts',
             'roleCounts',
             'trend',
+            'window',
         ));
     }
 }

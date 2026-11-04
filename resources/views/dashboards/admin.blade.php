@@ -46,37 +46,35 @@
                 <div class="pointer-events-none absolute -bottom-24 right-40 h-48 w-48 rounded-full bg-white/5"></div>
             </section>
 
-            {{-- Platform statistics --}}
-            <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ([
-                    ['Total Users', number_format($totalUsers), 'Registered accounts', '👥'],
-                    ['Total Products', number_format($totalProducts), 'Marketplace catalogue', '📦'],
-                    ['Categories', number_format($totalCategories), 'Product classifications', '🏷️'],
-                    ['Total Orders', number_format($totalOrders), 'All recorded orders', '🛍️'],
-                    ['Processed Sales', '৳'.number_format((float) $totalSales, 2), 'Processing, shipped and delivered orders', '৳'],
-                    ['Low-Stock Products', number_format($lowStockProducts->count()), 'Showing up to 8 products with stock ≤ 5', '⚠️'],
-                ] as [$title, $value, $description, $symbol])
-                    <article class="ss-motion-card rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm"
-                             data-reveal>
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
-                                <p class="text-sm font-medium text-gray-500">{{ $title }}</p>
-                                <p class="mt-3 break-words text-2xl font-bold tracking-tight text-gray-900">
-                                    {{ $value }}
-                                </p>
-                            </div>
-                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-xl">
-                                {{ $symbol }}
-                            </span>
-                        </div>
-                        <p class="mt-3 text-xs leading-5 text-gray-500">{{ $description }}</p>
-                    </article>
-                @endforeach
+            {{-- Platform statistics: real totals; delta chips only where a
+                 previous-window comparison is meaningful. --}}
+            <section class="grid gap-4 sm:grid-cols-2">
+                <x-kpi-card title="Total Users" :value="number_format($totalUsers)"
+                            subtitle="Registered accounts" icon="👥"
+                            :delta="$trend['deltas']['newCustomers'] ?? null"
+                            :deltaLabel="'new customers vs '.$window['prevLabel']"/>
+                <x-kpi-card title="Total Products" :value="number_format($totalProducts)"
+                            subtitle="Marketplace catalogue" icon="📦"/>
+                <x-kpi-card title="Categories" :value="number_format($totalCategories)"
+                            subtitle="Product classifications" icon="🏷️"/>
+                <x-kpi-card title="Total Orders" :value="number_format($totalOrders)"
+                            subtitle="All recorded orders" icon="🛍️"
+                            :delta="$trend['deltas']['orders'] ?? null"
+                            :deltaLabel="'orders vs '.$window['prevLabel']"/>
+                <x-kpi-card title="Processed Sales" :value="'৳'.number_format((float) $totalSales, 2)"
+                            subtitle="Processing, shipped and delivered items" icon="৳"
+                            :delta="$trend['deltas']['netSales'] ?? null"
+                            :deltaLabel="'sales vs '.$window['prevLabel']"/>
+                <x-kpi-card title="Low-Stock Products" :value="number_format($trend['stockHealth']['lowStock'])"
+                            subtitle="Products with stock ≤ 5 right now" icon="⚠️"/>
             </section>
 
-            {{-- Rolling 30-day analytics pulse --}}
+            {{-- Analytics — window-scoped, guarded statistics over real records --}}
             @php
-                $pulseStatusColors = [
+                $summary = $trend['series']['summary'];
+                $funnel = $trend['orderFunnel'];
+
+                $statusColors = [
                     'delivered' => 'var(--ss-status-good)',
                     'pending' => 'var(--ss-status-warning)',
                     'cancelled' => 'var(--ss-status-critical)',
@@ -84,101 +82,326 @@
                     'shipped' => '#475569',
                 ];
 
-                $pulseSegments = collect($trend['statusDistribution'])
+                $statusSegments = collect($trend['statusDistribution'])
                     ->map(fn (array $row): array => [
                         'label' => ucfirst($row['status']),
                         'value' => $row['count'],
                         'display' => number_format($row['count']).' items',
                         'short' => number_format($row['count']),
-                        'color' => $pulseStatusColors[$row['status']] ?? '#9ca3af',
+                        'color' => $statusColors[$row['status']] ?? '#9ca3af',
                     ])->all();
+
+                $maLabel = $trend['window']['granularity'] === 'daily' ? '7-period average' : '3-period average';
+                $bucketNoun = ['daily' => 'Day', 'weekly' => 'Week', 'monthly' => 'Month'][$trend['window']['granularity']];
+
+                $topProducts = collect($trend['topProducts'])->take(5);
+                $topProductsShare = $topProducts->count() > 0
+                    ? $topProducts->last()['cumulative']
+                    : null;
+                $paretoFootnote = $topProductsShare !== null
+                    ? 'Observed concentration: the top '.$topProducts->count().' selling products account for '.$topProductsShare.'% of '.strtolower($window['label']).' net sales — a measured fact, not an assumed 80/20 rule.'
+                    : 'No sales in this window yet.';
+
+                $categories = collect($trend['categoryPerformance'])->take(6);
+                $acquisition = $trend['acquisition'];
+                $distribution = $acquisition['orderDistribution'];
+                $shops = collect($trend['shopPerformance'] ?? [])->take(5);
+                $riskRows = collect($trend['inventoryRisk'])->take(5);
+                $stock = $trend['stockHealth'];
             @endphp
-            <section class="grid gap-4 lg:grid-cols-3" data-reveal>
-                <x-chart-card title="Net sales — last 30 days" class="lg:col-span-2"
-                              subtitle="Marketplace-wide, daily buckets"
-                              footnote="Net sales count only items in processing, shipped or delivered status. The dotted continuation is a statistical projection — an estimate, never a fact. Full filterable analytics live in Reports.">
-                    <x-chart-line :labels="$trend['series']['labels']"
-                                 :series="[['name' => 'Net sales', 'values' => $trend['series']['netSales'], 'color' => 'var(--ss-chart-1)', 'area' => true]]"
-                                 :regression="$trend['series']['regression']"
-                                 :projection="$trend['series']['projection']"
-                                 :anomalies="$trend['series']['anomalies']"
-                                 format="money"
-                                 aria-label="Marketplace net sales over the last 30 days"/>
 
-                    <x-slot name="table">
-                        <div class="max-h-64 overflow-y-auto">
-                            <table class="min-w-full divide-y divide-gray-200 text-sm">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Day</th>
-                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Orders</th>
-                                        <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Net sales</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100 tabular-nums">
-                                    @forelse ($trend['series']['labels'] as $index => $label)
-                                        <tr>
-                                            <td class="px-4 py-2 text-gray-700">{{ $label }}</td>
-                                            <td class="px-4 py-2 text-right text-gray-700">{{ number_format($trend['series']['orders'][$index]) }}</td>
-                                            <td class="px-4 py-2 text-right text-gray-900">৳{{ number_format($trend['series']['netSales'][$index], 2) }}</td>
-                                        </tr>
-                                    @empty
-                                        <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">No data yet.</td></tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </x-slot>
-                </x-chart-card>
-
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="rounded-xl bg-gray-50 p-4">
-                            <p class="text-sm font-medium text-gray-500">Net sales (30d)</p>
-                            <p class="mt-2 text-xl font-bold text-gray-900">৳{{ number_format($trend['totals']['netSales'], 0) }}</p>
-                        </div>
-                        <div class="rounded-xl bg-gray-50 p-4">
-                            <p class="text-sm font-medium text-gray-500">Orders (30d)</p>
-                            <p class="mt-2 text-xl font-bold text-gray-900">{{ number_format($trend['totals']['orders']) }}</p>
-                        </div>
-                        <div class="rounded-xl bg-gray-50 p-4">
-                            <p class="text-sm font-medium text-gray-500">Avg order value</p>
-                            <p class="mt-2 text-xl font-bold text-gray-900">৳{{ number_format($trend['totals']['aov'], 0) }}</p>
-                        </div>
-                        <div class="rounded-xl bg-gray-50 p-4">
-                            <p class="text-sm font-medium text-gray-500">Customers ordering</p>
-                            <p class="mt-2 text-xl font-bold text-gray-900">{{ number_format($trend['totals']['customers']) }}</p>
-                        </div>
+            <section class="space-y-4" data-reveal>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900">Analytics</h3>
+                        <p class="mt-1 text-sm text-gray-500">
+                            {{ $window['label'] }} · compared with the {{ $window['prevLabel'] }} · cached for 10 minutes
+                        </p>
                     </div>
+                    <x-range-picker routeName="admin.dashboard" :active="$window['window']"/>
+                </div>
 
-                    <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                        <h4 class="text-sm font-bold text-gray-900">Order status mix</h4>
-                        <p class="mt-1 text-xs text-gray-500">All items placed in the window.</p>
-                        <div class="mt-3">
-                            @if (count($pulseSegments) > 0)
-                                <x-chart-segmented :items="$pulseSegments" variant="thin"
-                                                  :show-legend="false"
-                                                  aria-label="Order item status distribution, last 30 days"/>
+                {{-- Row 1: sales trend + order funnel --}}
+                <div class="grid gap-4 lg:grid-cols-3">
+                    <x-chart-card title="Sales trend" class="lg:col-span-2"
+                                  subtitle="Least-squares trend over {{$trend['window']['granularity']}} buckets; the dotted continuation is a projection — an estimate, never a fact."
+                                  footnote="Net sales = item subtotals in processing, shipped or delivered status; pending and cancelled items excluded. The moving average smooths short-term noise. Regression R² {{ $summary['r2'] !== null ? number_format($summary['r2'], 2).' ('.$summary['fit'].' fit — how closely sales follow a straight line)' : 'unavailable — needs at least 3 buckets of data' }}.">
+                        <div class="mb-3 flex flex-wrap items-center gap-2 text-xs">
+                            @if ($summary['direction'] !== null)
+                                <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-700">
+                                    Trend: {{ $summary['direction'] }}
+                                </span>
+                                <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-700">
+                                    Rate of change: {{ $summary['rateOfChange'] ?? '—' }}
+                                </span>
+                                @if (($deltas['netSales'] ?? null) !== null)
+                                    <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-700 tabular-nums">
+                                        {{ \App\Services\Analytics\Formats::signedPercent((float) $deltas['netSales']) }} vs {{ $window['prevLabel'] }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 font-medium text-gray-700">
+                                        No {{ $window['prevLabel'] }} to compare
+                                    </span>
+                                @endif
                             @else
-                                <p class="py-3 text-center text-xs text-gray-500">No orders yet.</p>
+                                <span class="text-gray-500">Not enough history for trend statistics yet.</span>
                             @endif
                         </div>
-                        <ul class="mt-3 space-y-1.5">
-                            @foreach ($trend['statusDistribution'] as $row)
-                                <li class="flex items-center justify-between text-xs">
-                                    <span class="flex items-center gap-2 text-gray-600">
-                                        <span class="h-2 w-2 rounded-sm {{ $row['status'] === 'delivered' ? 'bg-emerald-600' : ($row['status'] === 'pending' ? 'bg-amber-500' : ($row['status'] === 'cancelled' ? 'bg-red-600' : ($row['status'] === 'processing' ? 'bg-gray-500' : 'bg-slate-600'))) }}"
-                                              aria-hidden="true"></span>
-                                        {{ ucfirst($row['status']) }}
-                                    </span>
-                                    <span class="font-medium tabular-nums text-gray-800">
-                                        {{ number_format($row['count']) }} <span class="text-gray-400">({{ $row['share'] }}%)</span>
-                                    </span>
-                                </li>
-                            @endforeach
-                        </ul>
+
+                        <x-chart-line :labels="$trend['series']['labels']"
+                                     :series="[
+                                         ['name' => 'Net sales', 'values' => $trend['series']['netSales'], 'color' => 'var(--ss-chart-1)', 'area' => true],
+                                         ['name' => $maLabel, 'values' => $trend['series']['movingAverage'], 'color' => 'var(--ss-chart-dim)', 'dashed' => true],
+                                     ]"
+                                     :regression="$trend['series']['regression']"
+                                     :projection="$trend['series']['projection']"
+                                     :anomalies="$trend['series']['anomalies']"
+                                     format="money"
+                                     aria-label="Marketplace net sales trend"/>
+
+                        <x-slot name="table">
+                            <div class="max-h-64 overflow-y-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2.5 text-left font-semibold text-gray-600">{{ $bucketNoun }}</th>
+                                            <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Orders</th>
+                                            <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Net sales</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 tabular-nums">
+                                        @forelse ($trend['series']['labels'] as $index => $label)
+                                            <tr>
+                                                <td class="px-4 py-2 text-gray-700">{{ $label }}</td>
+                                                <td class="px-4 py-2 text-right text-gray-700">{{ number_format($trend['series']['orders'][$index]) }}</td>
+                                                <td class="px-4 py-2 text-right text-gray-900">৳{{ number_format($trend['series']['netSales'][$index], 2) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">No data yet.</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </x-slot>
+                    </x-chart-card>
+
+                    <div class="space-y-4">
+                        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <h4 class="text-sm font-bold text-gray-900">Order outcomes</h4>
+                            <p class="mt-1 text-xs text-gray-500">Share of all items placed in the window.</p>
+                            @if ($funnel['total'] > 0)
+                                <div class="mt-3 grid grid-cols-2 gap-3">
+                                    <div class="rounded-lg bg-gray-50 p-3">
+                                        <p class="text-xs font-medium text-gray-500">Completion rate</p>
+                                        <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">{{ $funnel['completionRate'] }}%</p>
+                                        <p class="mt-0.5 text-[11px] leading-4 text-gray-500">{{ number_format($funnel['delivered']) }} of {{ number_format($funnel['total']) }} items delivered</p>
+                                    </div>
+                                    <div class="rounded-lg bg-gray-50 p-3">
+                                        <p class="text-xs font-medium text-gray-500">Cancellation rate</p>
+                                        <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">{{ $funnel['cancellationRate'] }}%</p>
+                                        <p class="mt-0.5 text-[11px] leading-4 text-gray-500">{{ number_format($funnel['cancelled']) }} cancelled, {{ number_format($funnel['open']) }} still open</p>
+                                    </div>
+                                </div>
+                            @else
+                                <x-empty-state class="mt-3" message="No items in this window yet." hint="Rates appear once orders are placed."/>
+                            @endif
+                        </div>
+
+                        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <h4 class="text-sm font-bold text-gray-900">Order status mix</h4>
+                            <p class="mt-1 text-xs text-gray-500">All items placed in the window, cancelled included.</p>
+                            <div class="mt-3">
+                                @if (count($statusSegments) > 0)
+                                    <x-chart-segmented :items="$statusSegments" variant="thin"
+                                                      :show-legend="false"
+                                                      aria-label="Order item status distribution"/>
+                                @else
+                                    <x-empty-state message="No orders yet."/>
+                                @endif
+                            </div>
+                            <ul class="mt-3 space-y-1.5">
+                                @foreach ($trend['statusDistribution'] as $row)
+                                    <li class="flex items-center justify-between text-xs">
+                                        <span class="flex items-center gap-2 text-gray-600">
+                                            <span class="h-2 w-2 rounded-sm" style="background: {{ $statusColors[$row['status']] ?? '#9ca3af' }}"
+                                                  aria-hidden="true"></span>
+                                            {{ ucfirst($row['status']) }}
+                                        </span>
+                                        <span class="font-medium tabular-nums text-gray-800">
+                                            {{ number_format($row['count']) }} <span class="text-gray-400">({{ $row['share'] }}%)</span>
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
                     </div>
                 </div>
+
+                {{-- Row 2: customers + product performance --}}
+                <div class="grid gap-4 lg:grid-cols-3">
+                    <x-chart-card title="Customer growth"
+                                  subtitle="New customer registrations per {{$trend['window']['granularity'] === 'daily' ? 'day' : ($trend['window']['granularity'] === 'weekly' ? 'week' : 'month')}}"
+                                  footnote="Repeat rate counts customers with 2+ qualifying orders ÷ all ordering customers in the window.">
+                        <x-chart-line :labels="$acquisition['labels']"
+                                     :series="[['name' => 'New customers', 'values' => $acquisition['customers'], 'color' => 'var(--ss-chart-2)', 'area' => true]]"
+                                     format="number"
+                                     aria-label="New customer registrations over the window"/>
+
+                        <x-slot name="table">
+                            <div class="space-y-3 text-sm">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="rounded-lg bg-gray-50 p-3">
+                                        <p class="text-xs font-medium text-gray-500">Repeat customers</p>
+                                        <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">
+                                            {{ $acquisition['repeatRate'] !== null ? $acquisition['repeatRate'].'%' : '—' }}
+                                        </p>
+                                        <p class="mt-0.5 text-[11px] text-gray-500">{{ number_format($acquisition['repeatCustomers']) }} of {{ number_format($acquisition['orderingCustomers']) }} ordering</p>
+                                    </div>
+                                    <div class="rounded-lg bg-gray-50 p-3">
+                                        <p class="text-xs font-medium text-gray-500">Avg spend per ordering customer</p>
+                                        <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">
+                                            {{ $acquisition['avgOrderValuePerCustomer'] !== null ? '৳'.number_format($acquisition['avgOrderValuePerCustomer'], 2) : '—' }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500">Orders per customer</p>
+                                    @if ($acquisition['orderingCustomers'] > 0)
+                                        <x-chart-segmented :items="[
+                                            ['label' => '1 order', 'value' => $distribution['oneOrder'], 'display' => number_format($distribution['oneOrder']).' customers', 'short' => number_format($distribution['oneOrder']), 'color' => 'var(--ss-chart-1)'],
+                                            ['label' => '2 orders', 'value' => $distribution['twoOrders'], 'display' => number_format($distribution['twoOrders']).' customers', 'short' => number_format($distribution['twoOrders']), 'color' => 'var(--ss-chart-2)'],
+                                            ['label' => '3+ orders', 'value' => $distribution['threePlus'], 'display' => number_format($distribution['threePlus']).' customers', 'short' => number_format($distribution['threePlus']), 'color' => 'var(--ss-chart-3)'],
+                                        ]" variant="thin" :show-legend="true" aria-label="Orders per customer distribution"/>
+                                    @else
+                                        <x-empty-state class="mt-2" message="No ordering customers in this window."/>
+                                    @endif
+                                </div>
+                            </div>
+                        </x-slot>
+                    </x-chart-card>
+
+                    <x-chart-card title="Product performance" class="lg:col-span-2"
+                                  subtitle="Pareto ranking by net sales; the table twin carries the cumulative share."
+                                  footnote="{{ $paretoFootnote }}">
+                        @if ($topProducts->count() > 0)
+                            <x-chart-rank-bars :items="$topProducts->map(fn ($p) => [
+                                'name' => $p['name'],
+                                'value' => $p['revenue'],
+                                'display' => '৳'.number_format($p['revenue'], 0).' ('.$p['share'].'%)',
+                            ])->all()" aria-label="Top products by revenue"/>
+                        @else
+                            <x-empty-state message="No product sales in this window yet." hint="Top sellers appear once qualifying orders arrive."/>
+                        @endif
+
+                        <x-slot name="table">
+                            <div class="max-h-64 overflow-y-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2.5 text-left font-semibold text-gray-600">#</th>
+                                            <th class="px-4 py-2.5 text-left font-semibold text-gray-600">Product</th>
+                                            <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Units</th>
+                                            <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Revenue</th>
+                                            <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Share</th>
+                                            <th class="px-4 py-2.5 text-right font-semibold text-gray-600">Cumulative</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 tabular-nums">
+                                        @forelse ($trend['topProducts'] as $index => $product)
+                                            <tr>
+                                                <td class="px-4 py-2 text-gray-500">{{ $index + 1 }}</td>
+                                                <td class="px-4 py-2 text-gray-700">{{ $product['name'] }}</td>
+                                                <td class="px-4 py-2 text-right text-gray-700">{{ number_format($product['units']) }}</td>
+                                                <td class="px-4 py-2 text-right text-gray-900">৳{{ number_format($product['revenue'], 2) }}</td>
+                                                <td class="px-4 py-2 text-right text-gray-700">{{ $product['share'] }}%</td>
+                                                <td class="px-4 py-2 text-right font-medium text-gray-900">{{ $product['cumulative'] }}%</td>
+                                            </tr>
+                                        @empty
+                                            <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">No sales yet.</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </x-slot>
+                    </x-chart-card>
+                </div>
+
+                {{-- Row 3: revenue distribution + inventory intelligence --}}
+                <div class="grid gap-4 lg:grid-cols-3">
+                    <x-chart-card title="Revenue by category"
+                                  subtitle="Net sales share per category"
+                                  footnote="Uncategorised products are grouped, never dropped.">
+                        @if ($categories->count() > 0)
+                            <x-chart-bars :labels="$categories->pluck('name')->all()"
+                                          :values="$categories->pluck('revenue')->all()"
+                                          format="money"
+                                          aria-label="Revenue per category"/>
+                        @else
+                            <x-empty-state message="No category revenue in this window."/>
+                        @endif
+                    </x-chart-card>
+
+                    <x-chart-card title="Revenue by shop"
+                                  subtitle="Marketplace concentration: net sales per approved shop"
+                                  footnote="Concentration is a dependency fact, not a ranking of shop quality.">
+                        @if ($shops->count() > 0)
+                            <x-chart-rank-bars :items="$shops->map(fn ($shop) => [
+                                'name' => $shop['name'],
+                                'value' => $shop['revenue'],
+                                'display' => '৳'.number_format($shop['revenue'], 0).' ('.$shop['share'].'%)',
+                            ])->all()" aria-label="Revenue per shop"/>
+                        @else
+                            <x-empty-state message="No shop revenue in this window."/>
+                        @endif
+                    </x-chart-card>
+
+                    <x-chart-card title="Inventory intelligence"
+                                  subtitle="Stock health now, burn rate over the window"
+                                  footnote="Days-of-stock = current stock ÷ units sold per day. It is a moving estimate that assumes recent pace continues; products with no sales have no honest estimate.">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="rounded-lg bg-gray-50 p-3">
+                                <p class="text-xs font-medium text-gray-500">Low stock</p>
+                                <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">{{ number_format($stock['lowStock']) }}</p>
+                                <p class="mt-0.5 text-[11px] text-gray-500">of {{ number_format($stock['total']) }} products</p>
+                            </div>
+                            <div class="rounded-lg bg-gray-50 p-3">
+                                <p class="text-xs font-medium text-gray-500">Out of stock</p>
+                                <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">{{ number_format($stock['outOfStock']) }}</p>
+                            </div>
+                            <div class="rounded-lg bg-gray-50 p-3">
+                                <p class="text-xs font-medium text-gray-500">Healthy</p>
+                                <p class="mt-1 text-xl font-bold text-gray-900 tabular-nums">{{ number_format(max(0, $stock['total'] - $stock['lowStock'])) }}</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <p class="text-xs font-semibold text-gray-700">Running out soonest</p>
+                            @if ($riskRows->count() > 0)
+                                <ul class="mt-2 space-y-1.5">
+                                    @foreach ($riskRows as $row)
+                                        <li class="flex items-center justify-between gap-3 text-xs">
+                                            <span class="min-w-0 truncate text-gray-700">{{ $row['name'] }}</span>
+                                            <span class="shrink-0 tabular-nums text-gray-600">
+                                                {{ number_format($row['stock']) }} left · {{ number_format($row['burnPerDay'], 1) }}/day ·
+                                                <span class="font-medium {{ ($row['daysOfStock'] !== null && $row['daysOfStock'] <= 7) ? 'text-[color:var(--ss-status-critical)]' : 'text-gray-800' }}">
+                                                    {{ $row['daysOfStock'] !== null ? number_format($row['daysOfStock'], 1).' days' : '—' }}
+                                                </span>
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <x-empty-state class="mt-2" message="No recorded sales pace in this window." hint="Days-of-stock appears once items sell."/>
+                            @endif
+                        </div>
+                    </x-chart-card>
+                </div>
+
+                <p class="text-xs text-gray-400">
+                    Looking for vouchers, payments, movers or the order-time heatmap? The full filterable
+                    report lives in
+                    <a href="{{ route('admin.reports') }}" class="font-semibold text-indigo-600 hover:text-indigo-800">Reports</a>.
+                </p>
             </section>
 
             {{-- User roles --}}

@@ -7,13 +7,15 @@ use App\Models\Order;
 use App\Models\OrderIdem;
 use App\Models\Product;
 use App\Services\Analytics\AnalyticsService;
+use App\Services\Analytics\WindowResolver;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
-    public function index(AnalyticsService $analytics): View
+    public function index(Request $request, AnalyticsService $analytics): View
     {
         $userId = Auth::id();
 
@@ -79,18 +81,33 @@ class DashboardController extends Controller
             ->distinct()
             ->count('orders.id');
 
+        // All-time average order value with a consistent denominator: net
+        // sales divided by the orders that actually produced those sales.
+        $qualifyingOrderCount = (clone $ownerOrderItems)
+            ->distinct()
+            ->count('order_id');
+
+        $averageOrderValue = $qualifyingOrderCount > 0
+            ? round((float) $totalSales / $qualifyingOrderCount, 2)
+            : 0.0;
+
         $ownerId = (int) $userId;
 
-        // Rolling 30-day analytics scoped strictly to this owner's products.
+        // Window-scoped analytics scoped strictly to this owner's products
+        // (scope comes from Auth::id(), never from the request). Comparison
+        // is always on so KPI delta chips are honest, and the cache key
+        // carries both the window and the owner id.
+        $window = WindowResolver::dashboard($request);
+
         $trend = Cache::remember(
-            'analytics:owner:dashboard:30d:'.$ownerId,
+            'analytics:owner:dashboard:'.$window['window'].':'.$ownerId,
             now()->addMinutes(10),
             fn (): array => $analytics->overview(
                 $ownerId,
-                now()->subDays(29)->startOfDay(),
-                now()->endOfDay(),
-                'daily',
-                false,
+                $window['from'],
+                $window['to'],
+                $window['granularity'],
+                true,
             ),
         );
 
@@ -104,7 +121,9 @@ class DashboardController extends Controller
             'pendingOrders',
             'todaySales',
             'todayOrders',
+            'averageOrderValue',
             'trend',
+            'window',
         ));
     }
 }

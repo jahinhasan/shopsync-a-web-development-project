@@ -3,6 +3,7 @@
 namespace App\Services\Analytics;
 
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\ShopApplication;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -65,6 +66,7 @@ class AnalyticsService
 
         $series = $this->salesSeries($ownerId, $from, $to, $granularity);
         $totals = $this->totals($ownerId, $from, $to);
+        $statusRows = $this->statusDistribution($ownerId, $from, $to);
 
         $payload = [
             'window' => [
@@ -80,14 +82,17 @@ class AnalyticsService
             'orderHistogram' => $this->orderHistogram($ownerId, $from, $to),
             'topProducts' => $this->topProducts($ownerId, $from, $to, $totals['netSales']),
             'categoryPerformance' => $this->categoryPerformance($ownerId, $from, $to),
-            'statusDistribution' => $this->statusDistribution($ownerId, $from, $to),
-            'acquisition' => $this->acquisition($ownerId, $from, $to, $granularity),
+            'statusDistribution' => $statusRows,
+            'orderFunnel' => $this->orderFunnel($statusRows),
+            'acquisition' => $this->acquisition($ownerId, $from, $to, $granularity, $totals['netSales']),
             'vouchers' => $this->voucherPerformance($ownerId, $from, $to),
             'payments' => $this->paymentPerformance($ownerId, $from, $to),
             'inventoryRisk' => $this->inventoryRisk($ownerId, $from, $to, $windowDays),
             'productMovers' => $this->productMovers($ownerId, $from, $to, $prevFrom, $prevTo),
             'heatmap' => $this->orderHeatmap($ownerId, $from, $to, $windowDays),
             'shopPerformance' => $ownerId === null ? $this->shopPerformance($from, $to, $totals['netSales']) : null,
+            // Current stock state — intentionally not window-scoped.
+            'stockHealth' => $this->stockHealth($ownerId),
         ];
 
         if ($compare) {
@@ -106,7 +111,16 @@ class AnalyticsService
                 'orders' => AnalyticsMath::percentageChange((float) $totals['orders'], (float) $previousTotals['orders']),
                 'aov' => AnalyticsMath::percentageChange((float) $totals['aov'], (float) $previousTotals['aov']),
                 'units' => AnalyticsMath::percentageChange((float) $totals['units'], (float) $previousTotals['units']),
+                'customers' => AnalyticsMath::percentageChange((float) $totals['customers'], (float) $previousTotals['customers']),
             ];
+
+            // Admin hero cards also track new customer registrations.
+            if ($ownerId === null) {
+                $payload['deltas']['newCustomers'] = AnalyticsMath::percentageChange(
+                    (float) $this->newCustomerCount($from, $to),
+                    (float) $this->newCustomerCount($prevFrom, $prevTo),
+                );
+            }
         }
 
         return $payload;
@@ -178,6 +192,7 @@ class AnalyticsService
             'projection' => $this->projection($netSales, $granularity),
             'anomalies' => count($netSales) >= 10 ? AnalyticsMath::zScores($netSales) : null,
             'acceleration' => $this->acceleration($netSales),
+            'summary' => $this->trendSummary($netSales),
         ];
     }
 
@@ -365,13 +380,106 @@ class AnalyticsService
     }
 
     /**
+     * Completion and cancellation rates over every item placed in the window.
+     * The denominator is deliberately ALL items (pending included): "what
+     * share of what customers ordered ended up delivered / cancelled".
+     * Derived from the status counts — no extra query.
+     *
+     * @param  list<{status: string, count: int, share: float}>  $statusRows
+     * @return array{total: int, delivered: int, cancelled: int, open: int, completionRate: float|null, cancellationRate: float|null}
+     */
+    public function orderFunnel(array $statusRows): array
+    {
+        $counts = collect($statusRows)->pluck('count', 'status');
+        $total = (int) $counts->sum();
+
+        $delivered = (int) $counts->get('delivered', 0);
+        $cancelled = (int) $counts->get('cancelled', 0);
+
+        return [
+            'total' => $total,
+            'delivered' => $delivered,
+            'cancelled' => $cancelled,
+            'open' => $total - $delivered - $cancelled,
+            'completionRate' => $total > 0 ? round(($delivered / $total) * 100, 1) : null,
+            'cancellationRate' => $total > 0 ? round(($cancelled / $total) * 100, 1) : null,
+        ];
+    }
+
+    /**
+     * Current stock health. Current state, not window-scoped: stock does not
+     * belong to a date range, so the KPI never claims it does.
+     *
+     * @return array{total: int, lowStock: int, outOfStock: int}
+     */
+    public function stockHealth(?int $ownerId): array
+    {
+        $row = Product::query()
+            ->when($ownerId !== null, fn ($query) => $query->where('user_id', $ownerId))
+            ->selectRaw('COUNT(*) as total, COALESCE(SUM(stock <= 5), 0) as low_stock, COALESCE(SUM(stock <= 0), 0) as out_of_stock')
+            ->first();
+
+        return [
+            'total' => (int) ($row->total ?? 0),
+            'lowStock' => (int) ($row->low_stock ?? 0),
+            'outOfStock' => (int) ($row->out_of_stock ?? 0),
+        ];
+    }
+
+    /**
+     * Customer accounts registered in the window (admin hero delta).
+     */
+    private function newCustomerCount(Carbon $from, Carbon $to): int
+    {
+        return (int) User::query()
+            ->where('role', 'customer')
+            ->whereBetween('created_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()])
+            ->count();
+    }
+
+    /**
+     * Plain-language trend verdict: least-squares direction against a noise
+     * threshold (1% of the mean), the R² fit band, and the short-term rate
+     * of change. Descriptive only — never a forecast claim.
+     *
+     * @return array{direction: string|null, fit: string|null, r2: float|null, rateOfChange: string|null}
+     */
+    private function trendSummary(array $values): array
+    {
+        $fit = AnalyticsMath::linearRegression($values);
+
+        if ($fit === null) {
+            return ['direction' => null, 'fit' => null, 'r2' => null, 'rateOfChange' => null];
+        }
+
+        $mean = AnalyticsMath::mean($values) ?? 0.0;
+        $threshold = max(0.01, abs($mean) * 0.01);
+
+        $direction = match (true) {
+            $fit['slope'] > $threshold => 'rising',
+            $fit['slope'] < -$threshold => 'falling',
+            default => 'stable',
+        };
+
+        $r2 = (float) $fit['r2'];
+
+        return [
+            'direction' => $direction,
+            'fit' => $r2 >= 0.5 ? 'strong' : ($r2 >= 0.25 ? 'moderate' : 'weak'),
+            'r2' => round($r2, 2),
+            'rateOfChange' => $this->acceleration($values)['direction'] ?? null,
+        ];
+    }
+
+    /**
      * Customer growth per bucket plus the repeat-purchase split. Admins see
      * new platform signups; owners see the distinct customers ordering from
      * their shop each bucket.
      *
-     * @return array{metric: string, buckets: list<string>, labels: list<string>, customers: list<int>, orderingCustomers: int, repeatCustomers: int, repeatRate: float|null}
+     * @param  float|null  $netSales  window net sales, for the per-customer average
+     * @return array{metric: string, buckets: list<string>, labels: list<string>, customers: list<int>, orderingCustomers: int, repeatCustomers: int, repeatRate: float|null, orderDistribution: array{oneOrder: int, twoOrders: int, threePlus: int}, avgOrderValuePerCustomer: float|null}
      */
-    public function acquisition(?int $ownerId, Carbon $from, Carbon $to, string $granularity): array
+    public function acquisition(?int $ownerId, Carbon $from, Carbon $to, string $granularity, ?float $netSales = null): array
     {
         $buckets = $this->bucketKeys($from, $to, $granularity);
 
@@ -429,6 +537,13 @@ class AnalyticsService
         $orderingCustomers = $perCustomer->count();
         $repeatCustomers = $perCustomer->filter(fn ($row): bool => (int) $row->order_count >= 2)->count();
 
+        // How demanding is the customer base? Orders-per-customer frequency.
+        $orderDistribution = [
+            'oneOrder' => $perCustomer->filter(fn ($row): bool => (int) $row->order_count === 1)->count(),
+            'twoOrders' => $perCustomer->filter(fn ($row): bool => (int) $row->order_count === 2)->count(),
+            'threePlus' => $perCustomer->filter(fn ($row): bool => (int) $row->order_count >= 3)->count(),
+        ];
+
         return [
             'metric' => $metric,
             'buckets' => array_column($buckets, 'key'),
@@ -437,6 +552,10 @@ class AnalyticsService
             'orderingCustomers' => $orderingCustomers,
             'repeatCustomers' => $repeatCustomers,
             'repeatRate' => $orderingCustomers > 0 ? round(($repeatCustomers / $orderingCustomers) * 100, 1) : null,
+            'orderDistribution' => $orderDistribution,
+            'avgOrderValuePerCustomer' => $orderingCustomers > 0 && $netSales !== null && $netSales > 0
+                ? round($netSales / $orderingCustomers, 2)
+                : null,
         ];
     }
 
