@@ -4,14 +4,16 @@
  * Every scene on the landing page is drawn on a <canvas> from explicit
  * equations, evaluated per frame:
  *
- *   hero     vector field  θ(x,y,t) = sin(yk₁+tω₁) + cos(xk₂−tω₂),
- *            shop nodes on Lissajous-style orbits,
- *            order packets along quadratic Bézier curves
- *            B(u) = (1−u)²P₀ + 2(1−u)uP₁ + u²P₂
- *   rose     r = R·cos(5θ)  (odd k → one closed 5-petal curve over [0, π])
- *   waves    y = A·sin(k₁x − ω₁t) + ½A·sin(k₂x + ω₂t)  (superposition)
- *   growth   y = L / (1 + e^(−k(x−x₀)))  (logistic curve)
- *   signals  layered sines y = A·sin(kx + ωt + φ) + 0.35A·sin(2.7kx − 0.6ωt)
+ *   background  full-page vector field θ(x,y,t) = sin(yk₁+tω₁) + cos(xk₂−tω₂)
+ *               with a local vortex injected around the visitor's cursor
+ *   cursor      underdamped spring  a = −k(x − target) − c·v  chasing the
+ *               pointer, leaving a sine-wobbled trail
+ *   hero        shop nodes on Lissajous-style orbits, order packets along
+ *               quadratic Bézier curves  B(u) = (1−u)²P₀ + 2(1−u)uP₁ + u²P₂
+ *   rose        r = R·cos(5θ)  (odd k → one closed 5-petal curve over [0, π])
+ *   waves       y = A·sin(k₁x − ω₁t) + ½A·sin(k₂x + ω₂t)  (superposition)
+ *   growth      y = L / (1 + e^(−k(x−x₀)))  (logistic curve)
+ *   signals     layered sines y = A·sin(kx + ωt + φ) + 0.35A·sin(2.7kx − 0.6ωt)
  *
  * All scenes share one requestAnimationFrame ticker, pause when scrolled
  * off-screen or the tab is hidden, and render a single static frame when
@@ -19,6 +21,11 @@
  */
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+/** Latest pointer position, shared by the background vortex and the cursor comet. */
+const pointer = { x: -9999, y: -9999, active: false };
 
 /** Deterministic PRNG (mulberry32) so layouts are stable between reloads. */
 function seededRandom(seed) {
@@ -42,22 +49,163 @@ const smoothstep = (t) => t * t * (3 - 2 * t);
 const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
 /* =====================================================================
-   Scene: hero — flow field + shop network + Bézier order packets
+   Scene: background — full-page flow field with a cursor-driven vortex
+   ===================================================================== */
+function makeBackgroundScene() {
+    const random = seededRandom(20261104);
+    let particles = [];
+
+    function build(w, h) {
+        const count = Math.round(Math.min(170, Math.max(60, (w * h) / 11000)));
+
+        particles = Array.from({ length: count }, () => ({
+            x: random() * w,
+            y: random() * h,
+        }));
+    }
+
+    function step(ctx, w, h, t, dt) {
+        // Fade previous frames instead of clearing: leaves comet trails.
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+
+        const speed = 32;
+        const swirlRadius = 220;
+        ctx.fillStyle = 'rgba(165, 180, 252, 0.45)';
+
+        for (const particle of particles) {
+            // Base direction field: θ(x, y, t) from three interfering waves.
+            const theta =
+                Math.sin(particle.y * 0.0019 + t * 0.28) * 1.4 +
+                Math.cos(particle.x * 0.0015 - t * 0.22) * 1.4 +
+                Math.sin((particle.x + particle.y) * 0.0009 + t * 0.1) * 0.6;
+
+            let vx = Math.cos(theta);
+            let vy = Math.sin(theta);
+
+            // The cursor injects a local vortex: tangential swirl plus a
+            // gentle pull toward the pointer, fading with distance.
+            if (pointer.active) {
+                const dx = pointer.x - particle.x;
+                const dy = pointer.y - particle.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < swirlRadius && dist > 1) {
+                    const falloff = (1 - dist / swirlRadius) ** 2;
+
+                    vx += ((-dy / dist) * 2.4 + (dx / dist) * 0.7) * falloff;
+                    vy += ((dx / dist) * 2.4 + (dy / dist) * 0.7) * falloff;
+                }
+            }
+
+            const norm = Math.hypot(vx, vy) || 1;
+
+            particle.x += (vx / norm) * speed * dt;
+            particle.y += (vy / norm) * speed * dt;
+
+            if (particle.x < -10) particle.x = w + 10;
+            if (particle.x > w + 10) particle.x = -10;
+            if (particle.y < -10) particle.y = h + 10;
+            if (particle.y > h + 10) particle.y = -10;
+
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    return { build, step };
+}
+
+/* =====================================================================
+   Scene: cursor — underdamped spring comet chasing the pointer
+   ===================================================================== */
+function makeCursorScene() {
+    const spring = { x: -200, y: -200, vx: 0, vy: 0 };
+    const trail = [];
+
+    function step(ctx, w, h, t, dt) {
+        ctx.clearRect(0, 0, w, h);
+
+        if (!pointer.active) {
+            return;
+        }
+
+        // a = −k(x − target) − c·v, integrated with semi-implicit Euler.
+        // Slight underdamping gives the comet its organic overshoot.
+        const stiffness = 140;
+        const damping = 16;
+
+        spring.vx += (stiffness * (pointer.x - spring.x) - damping * spring.vx) * dt;
+        spring.vy += (stiffness * (pointer.y - spring.y) - damping * spring.vy) * dt;
+        spring.x += spring.vx * dt;
+        spring.y += spring.vy * dt;
+
+        trail.push({ x: spring.x, y: spring.y });
+
+        if (trail.length > 16) {
+            trail.shift();
+        }
+
+        // Trail drawn as circles whose centres wobble along the path
+        // normal with a travelling sine, so the tail ripples like a wave.
+        const count = trail.length;
+
+        for (let i = 1; i < count; i++) {
+            const current = trail[i];
+            const previous = trail[i - 1];
+            const dx = current.x - previous.x;
+            const dy = current.y - previous.y;
+            const length = Math.hypot(dx, dy) || 1;
+            const wobble = Math.sin(i * 0.9 + t * 8) * 3.5 * (i / count);
+
+            ctx.beginPath();
+            ctx.arc(
+                current.x + (-dy / length) * wobble,
+                current.y + (dx / length) * wobble,
+                1 + (i / count) * 2.6,
+                0,
+                Math.PI * 2
+            );
+            ctx.fillStyle = `rgba(165, 180, 252, ${(i / count) * 0.4})`;
+            ctx.fill();
+        }
+
+        const halo = ctx.createRadialGradient(
+            spring.x,
+            spring.y,
+            0,
+            spring.x,
+            spring.y,
+            26
+        );
+
+        halo.addColorStop(0, 'rgba(129, 140, 248, 0.35)');
+        halo.addColorStop(1, 'rgba(129, 140, 248, 0)');
+
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(spring.x, spring.y, 26, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(spring.x, spring.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(224, 231, 255, 0.9)';
+        ctx.fill();
+    }
+
+    return { step };
+}
+
+/* =====================================================================
+   Scene: hero — shop network + Bézier order packets over the backdrop
    ===================================================================== */
 function makeHeroScene() {
     const random = seededRandom(20261104);
-    let particles = [];
     let nodes = [];
     let packets = [];
-
-    /** Direction field: θ(x, y, t) from three interfering sine/cosine terms. */
-    function fieldAngle(x, y, t) {
-        return (
-            Math.sin(y * 0.0021 + t * 0.31) * 1.5 +
-            Math.cos(x * 0.0017 - t * 0.24) * 1.5 +
-            Math.sin((x + y) * 0.001 + t * 0.11) * 0.7
-        );
-    }
 
     function spawnPacket(nodeCount) {
         const from = Math.floor(random() * nodeCount);
@@ -77,15 +225,8 @@ function makeHeroScene() {
     }
 
     function build(w, h) {
-        const area = w * h;
-        const particleCount = Math.round(Math.min(110, Math.max(36, area / 14000)));
         const nodeCount = w < 640 ? 5 : 7;
         const packetCount = w < 640 ? 9 : 20;
-
-        particles = Array.from({ length: particleCount }, () => ({
-            x: random() * w,
-            y: random() * h,
-        }));
 
         nodes = Array.from({ length: nodeCount }, (_, index) => ({
             phase: (index / nodeCount) * Math.PI * 2,
@@ -104,26 +245,6 @@ function makeHeroScene() {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
         ctx.fillRect(0, 0, w, h);
         ctx.globalCompositeOperation = 'source-over';
-
-        // Particles advected by the vector field.
-        const speed = 26;
-        ctx.fillStyle = 'rgba(165, 180, 252, 0.5)';
-
-        for (const particle of particles) {
-            const angle = fieldAngle(particle.x, particle.y, t);
-
-            particle.x += Math.cos(angle) * speed * dt;
-            particle.y += Math.sin(angle) * speed * dt;
-
-            if (particle.x < -10) particle.x = w + 10;
-            if (particle.x > w + 10) particle.x = -10;
-            if (particle.y < -10) particle.y = h + 10;
-            if (particle.y > h + 10) particle.y = -10;
-
-            ctx.beginPath();
-            ctx.arc(particle.x, particle.y, 1.3, 0, Math.PI * 2);
-            ctx.fill();
-        }
 
         // Shop nodes drifting on out-of-phase circular orbits (Lissajous-like).
         const cx = w / 2;
@@ -479,6 +600,7 @@ function makeSignalsScene() {
    Stage + ticker plumbing
    ===================================================================== */
 const stages = [];
+let cursorStage = null;
 let rafId = null;
 let lastTime = 0;
 
@@ -527,6 +649,15 @@ function tick(now) {
         }
     }
 
+    if (cursorStage && cursorStage.visible && !document.hidden) {
+        try {
+            cursorStage.scene.step(cursorStage.ctx, cursorStage.w, cursorStage.h, t, dt);
+        } catch (error) {
+            console.warn('landing cursor scene failed', error);
+            cursorStage.visible = false;
+        }
+    }
+
     rafId = requestAnimationFrame(tick);
 }
 
@@ -544,11 +675,26 @@ function stopTicker() {
     }
 }
 
+/** The cursor comet only runs for fine pointers without reduced motion. */
+function updateCursorStageMode() {
+    if (!cursorStage) {
+        return;
+    }
+
+    cursorStage.visible = finePointer.matches && !reducedMotion.matches;
+
+    if (!cursorStage.visible) {
+        cursorStage.ctx.clearRect(0, 0, cursorStage.w, cursorStage.h);
+    }
+}
+
 function applyMotionPreference() {
     if (reducedMotion.matches) {
         stopTicker();
         stages.forEach(drawStatic);
+        updateCursorStageMode();
     } else {
+        updateCursorStageMode();
         startTicker();
     }
 }
@@ -612,8 +758,41 @@ function revealContent() {
     elements.forEach((element) => observer.observe(element));
 }
 
+function setupCursorStage() {
+    const canvas = document.getElementById('landing-cursor-canvas');
+
+    if (!canvas) {
+        return;
+    }
+
+    cursorStage = {
+        canvas,
+        ctx: canvas.getContext('2d'),
+        scene: makeCursorScene(),
+        w: 0,
+        h: 0,
+        visible: false,
+    };
+
+    const resizeObserver = new ResizeObserver(() => sizeStage(cursorStage));
+
+    resizeObserver.observe(canvas);
+    sizeStage(cursorStage);
+
+    window.addEventListener('pointermove', (event) => {
+        pointer.x = event.clientX;
+        pointer.y = event.clientY;
+        pointer.active = true;
+    }, { passive: true });
+
+    document.documentElement.addEventListener('pointerleave', () => {
+        pointer.active = false;
+    });
+}
+
 function initializeLanding() {
-    const demos = [
+    const scenes = [
+        ['landing-bg-canvas', makeBackgroundScene],
         ['landing-hero-canvas', makeHeroScene],
         ['landing-rose-canvas', makeRoseScene],
         ['landing-wave-canvas', makeWaveScene],
@@ -621,7 +800,7 @@ function initializeLanding() {
         ['landing-signals-canvas', makeSignalsScene],
     ];
 
-    const mounted = demos.filter(([id]) => document.getElementById(id));
+    const mounted = scenes.filter(([id]) => document.getElementById(id));
 
     if (mounted.length === 0) {
         return;
@@ -629,9 +808,11 @@ function initializeLanding() {
 
     mounted.forEach(([id, makeScene]) => createStage(document.getElementById(id), makeScene));
 
+    setupCursorStage();
     revealContent();
 
     reducedMotion.addEventListener?.('change', applyMotionPreference);
+    finePointer.addEventListener?.('change', updateCursorStageMode);
     applyMotionPreference();
 }
 
