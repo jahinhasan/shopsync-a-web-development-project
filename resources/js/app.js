@@ -2,6 +2,100 @@ import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
 
+/**
+ * Shared chart interaction layer. Tooltips read precomputed JSON from
+ * data attributes and render through x-text, so labels that come from the
+ * database (product names, voucher codes) are never parsed as HTML.
+ */
+Alpine.data('ssChart', () => ({
+    open: false,
+    title: '',
+    rows: [],
+    x: 0,
+    y: 0,
+    flip: false,
+    crossX: null,
+
+    track(event) {
+        const svg = event.currentTarget.querySelector('svg[data-chart]');
+        const data = svg && svg.dataset.chart ? JSON.parse(svg.dataset.chart) : null;
+
+        if (!data || data.slots.length === 0) {
+            this.open = false;
+            return;
+        }
+
+        const rect = svg.getBoundingClientRect();
+        const scale = data.width / Math.max(rect.width, 1);
+        const pointerX = (event.clientX - rect.left) * scale;
+
+        let nearest = 0;
+        let distance = Infinity;
+
+        data.slots.forEach((slot, index) => {
+            const gap = Math.abs(slot.x - pointerX);
+
+            if (gap < distance) {
+                distance = gap;
+                nearest = index;
+            }
+        });
+
+        this.showSlot(data.slots[nearest], event);
+        this.crossX = data.slots[nearest].x;
+    },
+
+    mark(event) {
+        const hit = event.target.closest('[data-tip]');
+
+        if (!hit) {
+            this.open = false;
+            this.crossX = null;
+            return;
+        }
+
+        const tip = JSON.parse(hit.dataset.tip);
+
+        this.showSlot(tip, event);
+        this.crossX = null;
+    },
+
+    focusMark(event) {
+        const hit = event.target.closest('[data-tip]');
+
+        if (!hit) {
+            return;
+        }
+
+        const tip = JSON.parse(hit.dataset.tip);
+        const rect = hit.getBoundingClientRect();
+        const root = event.currentTarget.getBoundingClientRect();
+
+        this.title = tip.title;
+        this.rows = tip.rows;
+        this.open = true;
+        this.flip = false;
+        this.x = rect.left - root.left + rect.width / 2;
+        this.y = rect.top - root.top;
+    },
+
+    showSlot(slot, event) {
+        const root = event.currentTarget.getBoundingClientRect();
+
+        this.title = slot.title;
+        this.rows = slot.rows;
+        this.open = true;
+        this.x = event.clientX - root.left;
+        this.y = Math.max(0, event.clientY - root.top - 12);
+        this.flip = false;
+    },
+
+    leave() {
+        this.open = false;
+        this.crossX = null;
+    },
+}));
+
 Alpine.start();
 
 (() => {

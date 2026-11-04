@@ -13,6 +13,75 @@
     --ss-motion-duration: 220ms;
 }
 
+/* =========================================================
+   ShopSync Analytics tokens
+   Categorical series slots pass the colorblind-safety checks
+   on a white surface (worst adjacent pair ΔE 13.8 ≥ 8 target).
+   Status colors are reserved for good/warning/critical states
+   and never reused as series colors.
+   ========================================================= */
+:root {
+    --ss-chart-1: #4f46e5;
+    --ss-chart-2: #0d9488;
+    --ss-chart-3: #ea580c;
+    --ss-chart-4: #be185d;
+    --ss-seq-1: #e0e7ff;
+    --ss-seq-2: #c7d2fe;
+    --ss-seq-3: #a5b4fc;
+    --ss-seq-4: #818cf8;
+    --ss-seq-5: #6366f1;
+    --ss-seq-6: #4f46e5;
+    --ss-seq-7: #4338ca;
+    --ss-status-good: #059669;
+    --ss-status-warning: #f59e0b;
+    --ss-status-critical: #dc2626;
+    --ss-chart-grid: #e5e7eb;
+    --ss-chart-axis: #d1d5db;
+    --ss-chart-dim: #9ca3af;
+    --ss-chart-muted: #6b7280;
+    --ss-delta-up: #047857;
+    --ss-delta-down: #be123c;
+}
+
+/* Shared chart tooltip (content is written via Alpine's x-text, so
+   user-derived labels are never interpreted as HTML). */
+.ss-chart-tooltip {
+    position: absolute;
+    z-index: 30;
+    pointer-events: none;
+    min-width: 10rem;
+    max-width: 16rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(0 0 0 / 0.08);
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgb(15 23 42 / 0.12);
+    font-size: 0.75rem;
+    line-height: 1.1rem;
+    color: #1f2937;
+}
+
+.ss-chart-tooltip .ss-chart-tooltip-value {
+    font-weight: 600;
+    color: #111827;
+    font-variant-numeric: tabular-nums;
+}
+
+.ss-chart-tooltip .ss-chart-tooltip-key {
+    display: inline-block;
+    width: 0.75rem;
+    height: 2px;
+    border-radius: 9999px;
+    margin-right: 0.375rem;
+    vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ss-chart-tooltip {
+        transition: none !important;
+    }
+}
+
 
 
 
