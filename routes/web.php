@@ -18,7 +18,9 @@ use App\Http\Controllers\UserNotificationController;
 use App\Http\Controllers\CustomerRewardController;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return request()->user()
+        ? redirect()->route('dashboard')
+        : view('landing');
 })->name('home');
 
 Route::middleware('auth')->group(function () {

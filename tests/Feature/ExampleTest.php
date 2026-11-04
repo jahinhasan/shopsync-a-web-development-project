@@ -1,7 +1,7 @@
 <?php
 
-it('redirects guests from the home page to the login screen', function () {
+it('shows guests the landing page from the home page', function () {
     $response = $this->get('/');
 
-    $response->assertRedirect(route('login', absolute: false));
+    $response->assertOk();
 });

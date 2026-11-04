@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   ShopSync landing page. The animations themselves live in
+   resources/js/landing.js; this file only styles their stages.
+   ========================================================= */
+
+.landing-hero {
+    background:
+        radial-gradient(1100px 520px at 18% -10%, rgba(124, 58, 237, 0.35), transparent 60%),
+        radial-gradient(900px 480px at 85% 8%, rgba(79, 70, 229, 0.4), transparent 62%),
+        linear-gradient(160deg, #0b0f2a 0%, #1e1b4b 55%, #312e81 100%);
+}
+
+.landing-cta {
+    background:
+        radial-gradient(900px 420px at 50% 115%, rgba(124, 58, 237, 0.45), transparent 65%),
+        linear-gradient(180deg, #312e81 0%, #1e1b4b 60%, #0b0f2a 100%);
+}
+
+/* Shared stage for the three how-it-works demos */
+.landing-demo-canvas {
+    display: block;
+    width: 100%;
+    height: 190px;
+    border-radius: 0.875rem;
+    background:
+        radial-gradient(320px 160px at 50% 0%, rgba(99, 102, 241, 0.07), transparent 70%),
+        #0b0f2a;
+}
+
+.landing-equation {
+    margin-top: 1rem;
+    display: inline-block;
+    border-radius: 9999px;
+    border: 1px solid rgb(224 231 255);
+    background-color: rgb(238 242 255);
+    padding: 0.3rem 0.9rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    color: rgb(67 56 202);
+}
+
+/* Scroll reveal for landing content (mirrors the app's data-reveal system) */
+[data-landing-reveal] {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+        opacity 0.6s ease,
+        transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: calc(var(--reveal-delay, 0) * 90ms);
+}
+
+[data-landing-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-landing-reveal] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
