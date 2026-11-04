@@ -78,9 +78,15 @@ statistics are hand-written PHP (~270 lines, unit-tested); interactivity is the 
 | Suite | Result |
 |---|---|
 | `tests/Unit/Services/AnalyticsMathTest.php` (new) | 19 passed |
-| `tests/Feature/AnalyticsReportsTest.php` (new) | 7 passed — owner isolation, net-sales definition incl. cancelled-exclusion, daily/weekly/monthly bucketing, compare deltas, guard behaviour (no projection/heatmap on short windows), CSV export contents, invalid window rejection |
+| `tests/Feature/AnalyticsReportsTest.php` (new) | 8 passed — owner isolation, net-sales definition incl. cancelled-exclusion, daily/weekly/monthly bucketing, compare deltas, guard behaviour (no projection/heatmap on short windows), CSV export contents, invalid window rejection, voucher usage aggregation (order-level discount counted once per order, exact row shape) |
 | `tests/Feature/AdminSalesMetricsTest.php` (updated) | passes with the new payload contract |
-| **Full suite** | **77 passed, 291 assertions** (`vendor/bin/pest --compact`) |
+| **Full suite** | **78 passed, 293 assertions** (`vendor/bin/pest --compact`) |
+
+Additionally verified on the production MariaDB server (`smart_shoping`, MariaDB 13, `ONLY_FULL_GROUP_BY`): the
+entire payload builder runs read-only with no errors or warnings and returns real aggregates. This caught a
+grouping violation SQLite tolerates (voucher usage grouped by `orders.id` while selecting other columns — fixed
+by grouping on all selected columns; `orders.id` is unique so groups are unchanged) and a double-mapping bug in
+voucher usage rows (arrays re-read as objects produced null fields — fixed by returning the already-shaped rows).
 
 Also verified outside the suite: `php artisan view:cache` + `php -l` on every compiled view
 (caught Blade `@php(...)` pairing pitfalls), and a browser pass across desktop/tablet/mobile —

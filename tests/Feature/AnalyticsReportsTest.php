@@ -1,11 +1,13 @@
 <?php
 
 use App\Models\Category;
+use App\Models\CustomerVoucher;
 use App\Models\Order;
 use App\Models\OrderIdem;
 use App\Models\Product;
 use App\Models\ShopApplication;
 use App\Models\User;
+use App\Models\Voucher;
 use Illuminate\Support\Carbon;
 
 function analyticsCustomer(): User
@@ -21,7 +23,7 @@ function analyticsOwner(): User
     return $owner;
 }
 
-function makeMetricOrder(User $customer, array $items, ?Carbon $placedAt = null): Order
+function makeMetricOrder(User $customer, array $items, ?Carbon $placedAt = null, array $orderAttributes = []): Order
 {
     $order = Order::create([
         'user_id' => $customer->id,
@@ -33,6 +35,7 @@ function makeMetricOrder(User $customer, array $items, ?Carbon $placedAt = null)
         'phone' => '01700000000',
         'shipping_address' => 'House 12, Dhaka',
         'total' => array_sum(array_column($items, 'subtotal')),
+        ...$orderAttributes,
     ]);
 
     foreach ($items as $item) {
@@ -272,4 +275,55 @@ test('invalid report windows are rejected', function () {
             'to' => now()->subDays(9)->toDateString(),
         ]))
         ->assertSessionHasErrors();
+});
+
+test('voucher usage reports each order-level discount exactly once', function () {
+    $owner = analyticsOwner();
+    $product = metricProduct($owner, 'Voucher Product');
+    $customer = analyticsCustomer();
+
+    $voucher = Voucher::factory()->create();
+    $customerVoucher = CustomerVoucher::factory()
+        ->for($voucher)
+        ->for($customer)
+        ->create(['status' => 'redeemed']);
+
+    // One voucher order with TWO items and an order-level discount: the
+    // usage query groups per order before summing per code, so the discount
+    // must count once — never multiplied by the item count.
+    makeMetricOrder($customer, [
+        ['product_id' => $product->id, 'product_name' => $product->name, 'unit_price' => 600, 'quantity' => 1, 'subtotal' => 600, 'status' => 'delivered'],
+        ['product_id' => $product->id, 'product_name' => $product->name, 'unit_price' => 300, 'quantity' => 1, 'subtotal' => 300, 'status' => 'delivered'],
+    ], null, [
+        'voucher_code' => $customerVoucher->code,
+        'voucher_discount_total' => 150,
+    ]);
+
+    // A second, non-voucher order keeps the revenue split honest.
+    makeMetricOrder($customer, [
+        ['product_id' => $product->id, 'product_name' => $product->name, 'unit_price' => 400, 'quantity' => 1, 'subtotal' => 400, 'status' => 'delivered'],
+    ]);
+
+    $admin = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($admin)
+        ->get(route('admin.reports'))
+        ->assertOk()
+        ->assertViewHas('payload', function (array $p) use ($customerVoucher): bool {
+            $usage = $p['vouchers']['usage'];
+
+            return $p['vouchers']['issued'] === 1
+                && $p['vouchers']['redeemed'] === 1
+                && $p['vouchers']['redemptionRate'] === 100.0
+                && count($usage) === 1
+                && $usage[0]['code'] === $customerVoucher->code
+                && $usage[0]['orders'] === 1
+                && $usage[0]['discount'] === 150.0
+                && (float) $p['vouchers']['salesWithVoucher'] === 900.0
+                && (float) $p['vouchers']['salesWithoutVoucher'] === 400.0
+                && $p['vouchers']['salesWithVoucher'] + $p['vouchers']['salesWithoutVoucher'] === $p['totals']['netSales'];
+            // The shape assertions above also pin the usage rows as plain
+            // arrays with code/orders/discount keys, which the views, CSV
+            // export and dashboards all consume.
+        });
 });

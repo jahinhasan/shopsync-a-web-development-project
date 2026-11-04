@@ -465,7 +465,10 @@ class AnalyticsService
             ->whereBetween('orders.created_at', [$from->copy()->startOfDay(), $to->copy()->endOfDay()])
             ->whereNotNull('orders.voucher_code')
             ->where('orders.voucher_code', '!=', '')
-            ->groupBy('orders.id')
+            // orders.id is unique, so grouping by the other selected columns
+            // alongside it changes no group — but it keeps the query valid
+            // under MySQL/MariaDB ONLY_FULL_GROUP_BY, which SQLite ignores.
+            ->groupBy('orders.id', 'orders.voucher_code', 'orders.voucher_discount_total')
             ->get(['orders.id', 'orders.voucher_code', 'orders.voucher_discount_total']);
 
         $usageByCode = [];
@@ -505,11 +508,7 @@ class AnalyticsService
             'issued' => $issued,
             'redeemed' => $redeemed,
             'redemptionRate' => $issued > 0 ? round(($redeemed / $issued) * 100, 1) : null,
-            'usage' => $usage->map(fn ($row): array => [
-                'code' => (string) $row->code,
-                'orders' => (int) $row->orders,
-                'discount' => (float) $row->discount,
-            ])->all(),
+            'usage' => $usage->all(),
             'salesWithVoucher' => $salesWithVoucher,
             'salesWithoutVoucher' => $salesWithoutVoucher,
         ];
