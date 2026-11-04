@@ -4,7 +4,8 @@
     'footnote' => null,
 ])
 
-<div {{ $attributes->merge(['class' => 'rounded-xl border border-gray-200 bg-white p-5 shadow-sm']) }}>
+<div {{ $attributes->merge(['class' => 'rounded-xl border border-gray-200 bg-white p-5 shadow-sm']) }}
+    @isset($table) x-data="{ showTable: false }" @endisset>
     <div class="flex flex-wrap items-start justify-between gap-2">
         <div>
             <h3 class="text-base font-semibold text-gray-900">{{ $title }}</h3>
@@ -15,8 +16,7 @@
         </div>
 
         @isset($table)
-            <div x-data="{ showTable: false }"
-                 class="flex rounded-lg border border-gray-200 p-0.5 text-xs font-medium"
+            <div class="flex rounded-lg border border-gray-200 p-0.5 text-xs font-medium"
                  role="group"
                  aria-label="{{ $title }} view switch">
                 <button type="button" @click="showTable = false"
