@@ -251,6 +251,50 @@ class CartController extends Controller
                 );
             }
 
+            // Notify every seller whose products are in this order, once per
+            // seller, scoped to that seller's own items. This runs inside the
+            // transaction so a rollback can never leave a seller notified
+            // about an order that does not exist, and the exists() guard
+            // prevents a duplicate announcement if this code ever re-runs
+            // for the same order.
+            $sellerGroups = OrderIdem::query()
+                ->where('order_id', $order->id)
+                ->with('product:user_id,id')
+                ->get()
+                ->filter(fn (OrderIdem $item) => $item->product !== null)
+                ->groupBy(fn (OrderIdem $item) => $item->product->user_id);
+
+            foreach ($sellerGroups as $sellerId => $sellerItems) {
+                $seller = \App\Models\User::find($sellerId);
+
+                if (! $seller) {
+                    continue;
+                }
+
+                $alreadyNotified = $seller->notifications()
+                    ->where('type', \App\Notifications\NewOrderReceived::class)
+                    ->where('data->order_id', $order->id)
+                    ->exists();
+
+                if ($alreadyNotified) {
+                    continue;
+                }
+
+                $items = $sellerItems
+                    ->map(fn (OrderIdem $item): array => [
+                        'product_name' => $item->product_name,
+                        'quantity' => (int) $item->quantity,
+                        'subtotal' => (float) $item->subtotal,
+                    ])
+                    ->all();
+
+                $seller->notify(new \App\Notifications\NewOrderReceived(
+                    $order,
+                    $items,
+                    (float) $sellerItems->sum('subtotal'),
+                ));
+            }
+
             return $order;
         });
 

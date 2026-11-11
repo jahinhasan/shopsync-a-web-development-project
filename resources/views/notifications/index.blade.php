@@ -51,6 +51,13 @@
                                 </div>
                             @endif
 
+                            @if (!empty($notification->data['url']))
+                                <a href="{{ $notification->data['url'] }}"
+                                   class="mt-3 inline-block text-sm font-semibold text-indigo-600 hover:text-indigo-800">
+                                    View order →
+                                </a>
+                            @endif
+
                             <p class="mt-3 text-xs text-gray-500">
                                 {{ $notification->created_at->format('d M Y, h:i A') }}
                                 @if (!$notification->read_at)

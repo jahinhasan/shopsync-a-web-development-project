@@ -90,16 +90,7 @@
                                 class="w-36 rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 lg:w-48"
                             >
                         </form>
-                        <a href="{{ route('notifications.index') }}"
-                            class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
-                            Notifications
-
-                            @if (Auth::user()->unreadNotifications()->exists())
-                                <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-                                    New
-                                </span>
-                            @endif
-                        </a>
+                        <x-notification-bell/>
                         @if (Auth::user()?->role === 'admin')
                             <a href="{{ route('admin.shop-applications.index') }}" @class([
                                 'ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold',
@@ -263,16 +254,9 @@
                     class="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                 >
             </form>
-            <a href="{{ route('notifications.index') }}"
-                class="ss-nav-link rounded-xl px-4 py-2 text-sm font-semibold text-gray-600 hover:text-indigo-700">
-                Notifications
-
-                @if (Auth::user()->unreadNotifications()->exists())
-                    <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-                        New
-                    </span>
-                @endif
-            </a>
+            <div class="mt-2 flex justify-end">
+                <x-notification-bell/>
+            </div>
             @if (Auth::user()?->role === 'admin')
                 <a href="{{ route('admin.shop-applications.index') }}" @class([
                     'ss-nav-link mt-1 block rounded-xl px-4 py-3 text-sm font-semibold',
