@@ -49,6 +49,23 @@
                 >
             </div>
 
+            <div>
+                <label for="stock_status" class="mb-1 block text-sm font-medium text-gray-700">
+                    Stock status
+                </label>
+
+                <select
+                    id="stock_status"
+                    name="stock_status"
+                    class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                    <option value="">All stock levels</option>
+                    <option value="in_stock" @selected(request('stock_status') === 'in_stock')>In stock</option>
+                    <option value="low_stock" @selected(request('stock_status') === 'low_stock')>Low stock (≤ 5)</option>
+                    <option value="out_of_stock" @selected(request('stock_status') === 'out_of_stock')>Out of stock</option>
+                </select>
+            </div>
+
             <button type="submit"
                     class="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700">
                 Search

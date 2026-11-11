@@ -13,6 +13,7 @@
     'delta' => null,
     'deltaLabel' => 'vs previous period',
     'invert' => false,
+    'href' => null,
 ])
 
 @php
@@ -21,9 +22,13 @@
     $isGood = is_numeric($delta) && (float) $delta !== 0.0
         ? ($invert ? ! $isUp : $isUp)
         : null;
+    // When a destination is given the card renders as a real link: same
+    // visual markup, but the whole card is clickable and keyboard-focusable.
+    $asLink = filled($href);
 @endphp
 
-<article class="ss-motion-card rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm" {{ $attributes }}>
+<{{ $asLink ? 'a' : 'article' }} @if ($asLink) href="{{ $href }}" @endif
+    class="ss-motion-card block rounded-2xl border border-gray-200/80 bg-white p-5 shadow-sm" {{ $attributes }}>
     <div class="flex items-start justify-between gap-3">
         <div class="min-w-0">
             <p class="text-sm font-medium text-gray-500">{{ $title }}</p>
@@ -54,4 +59,4 @@
             <span class="ml-1">{{ $deltaLabel }}</span>
         </p>
     @endif
-</article>
+</{{ $asLink ? 'a' : 'article' }}>

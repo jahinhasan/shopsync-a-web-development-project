@@ -53,23 +53,29 @@
                  to the authenticated owner's products. --}}
             <section class="grid gap-4 sm:grid-cols-2">
                 <x-kpi-card title="Total Products" :value="number_format($totalProducts)"
-                            subtitle="Products in your catalogue" icon="📦"/>
+                            subtitle="Products in your catalogue" icon="📦"
+                            :href="route('owner.products.index')"/>
                 <x-kpi-card title="Total Orders" :value="number_format($totalOrders)"
                             subtitle="Orders containing your products" icon="🛍️"
                             :delta="$trend['deltas']['orders'] ?? null"
-                            :deltaLabel="'orders vs '.$window['prevLabel']"/>
+                            :deltaLabel="'orders vs '.$window['prevLabel']"
+                            :href="route('owner.order.manage')"/>
                 <x-kpi-card title="Processed Sales" :value="'৳'.number_format((float) $totalSales, 2)"
                             subtitle="Your items in processing, shipped or delivered status" icon="৳"
                             :delta="$trend['deltas']['netSales'] ?? null"
-                            :deltaLabel="'sales vs '.$window['prevLabel']"/>
+                            :deltaLabel="'sales vs '.$window['prevLabel']"
+                            :href="route('owner.order.manage', ['status' => 'sales'])"/>
                 <x-kpi-card title="Pending Orders" :value="number_format($pendingOrders)"
-                            subtitle="Your items waiting on processing — may need action" icon="⏳"/>
+                            subtitle="Your items waiting on processing — may need action" icon="⏳"
+                            :href="route('owner.order.manage', ['status' => 'pending'])"/>
                 <x-kpi-card title="Low-Stock Products" :value="number_format($trend['stockHealth']['lowStock'])"
-                            subtitle="Your products with stock ≤ 5 right now" icon="⚠️"/>
+                            subtitle="Your products with stock ≤ 5 right now" icon="⚠️"
+                            :href="route('owner.products.index', ['stock_status' => 'low_stock'])"/>
                 <x-kpi-card title="Average Order Value" :value="'৳'.number_format((float) $averageOrderValue, 2)"
                             subtitle="Your net sales ÷ qualifying orders" icon="💠"
                             :delta="$trend['deltas']['aov'] ?? null"
-                            :deltaLabel="'AOV vs '.$window['prevLabel']"/>
+                            :deltaLabel="'AOV vs '.$window['prevLabel']"
+                            :href="route('owner.order.manage', ['status' => 'sales'])"/>
             </section>
 
             {{-- Today summary --}}

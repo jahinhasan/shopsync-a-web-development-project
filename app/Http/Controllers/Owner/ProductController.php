@@ -32,7 +32,10 @@ $q->where('name','like',"%{$search}%")->orWhere('slug','like',"%{$search}%");
         if(request('stock_status') === 'in_stock'){
             $query->where('stock','>',0);
         }elseif(request('stock_status') === 'out_of_stock'){
-            $query->where('stock','=',0);   
+            $query->where('stock','=',0);
+        }elseif(request('stock_status') === 'low_stock'){
+            // Mirrors the dashboard's low-stock metric: five or fewer units.
+            $query->where('stock','<=',5);
         }
     }
 

@@ -21,9 +21,25 @@
             </div>
         @endif
 
+        {{-- Status filter chips — same item sets the dashboard cards link to --}}
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ route('owner.order.manage') }}"
+               class="rounded-full px-3 py-1.5 text-sm font-semibold {{ blank($statusFilter ?? null) ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
+                All items
+            </a>
+            <a href="{{ route('owner.order.manage', ['status' => 'pending']) }}"
+               class="rounded-full px-3 py-1.5 text-sm font-semibold {{ ($statusFilter ?? null) === 'pending' ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
+                Pending
+            </a>
+            <a href="{{ route('owner.order.manage', ['status' => 'sales']) }}"
+               class="rounded-full px-3 py-1.5 text-sm font-semibold {{ ($statusFilter ?? null) === 'sales' ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50' }}">
+                Processed sales
+            </a>
+        </div>
+
         {{-- Orders List --}}
         @forelse ($orders as $order)
-            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div id="order-{{ $order->id }}" class="scroll-mt-24 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
 
                 <div class="flex flex-wrap justify-between gap-4">
                     <div>
@@ -183,7 +199,11 @@
             </div>
         @empty
             <div class="rounded-lg border border-gray-200 bg-white p-6 text-center text-gray-500">
-                No orders found for your products.
+                @if (filled($statusFilter ?? null))
+                    No {{ $statusFilter === 'pending' ? 'pending' : 'processed' }} orders found for your products.
+                @else
+                    No orders found for your products.
+                @endif
             </div>
         @endforelse
 

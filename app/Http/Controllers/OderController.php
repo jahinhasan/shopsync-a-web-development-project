@@ -38,22 +38,50 @@ class OderController extends Controller
     {
         $userId = Auth::id();
 
+        // Optional status filter driven by the dashboard KPI cards. Each set
+        // mirrors the dashboard metric it links from exactly, so a card's
+        // number always matches the list it opens: "pending" is items waiting
+        // on processing, "sales" is items in processed statuses.
+        $statusFilter = request()->string('status')->toString();
+
+        $itemStatuses = match ($statusFilter) {
+            'pending' => ['pending', 'processing'],
+            'sales' => ['processing', 'shipped', 'delivered'],
+            default => null,
+        };
+
         $orders = Order::query()
             ->whereHas('items.product', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
+            ->when($itemStatuses !== null, function ($query) use ($itemStatuses, $userId) {
+                $query->whereHas('items', function ($itemQuery) use ($itemStatuses, $userId) {
+                    $itemQuery->whereIn('status', $itemStatuses)
+                        ->whereHas('product', function ($productQuery) use ($userId) {
+                            $productQuery->where('user_id', $userId);
+                        });
+                });
+            })
             ->with([
-                'items' => function ($query) use ($userId) {
+                'items' => function ($query) use ($userId, $itemStatuses) {
                     $query->whereHas('product', function ($productQuery) use ($userId) {
                         $productQuery->where('user_id', $userId);
-                    })->with('product');
+                    })
+                        ->when($itemStatuses !== null, function ($itemQuery) use ($itemStatuses) {
+                            $itemQuery->whereIn('status', $itemStatuses);
+                        })
+                        ->with('product');
                 },
                 'user',
             ])
             ->latest()
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('order.manage', compact('orders'));
+        return view('order.manage', [
+            'orders' => $orders,
+            'statusFilter' => $statusFilter,
+        ]);
     }
 
     public function updateStatus(
